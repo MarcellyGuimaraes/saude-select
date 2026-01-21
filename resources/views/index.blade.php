@@ -58,10 +58,12 @@
     <!-- CONTAINER PRINCIPAL -->
     <main id="step-container" class="w-full max-w-md bg-white rounded-xl shadow-lg overflow-hidden transition-smooth min-h-[500px] relative">
         <!-- Conteúdo será carregado dinamicamente aqui -->
-        <div class="flex items-center justify-center min-h-[500px]">
-            <div class="text-center">
-                <i class="fas fa-spinner fa-spin text-4xl text-blue-600 mb-4"></i>
-                <p class="text-gray-500">Carregando...</p>
+        <div class="p-8 text-center min-h-[500px] flex flex-col justify-center items-center">
+            <i class="fas fa-map-marker-alt text-6xl text-blue-500 mb-4 animate-pulse"></i>
+            <h2 class="text-xl font-bold text-gray-800 mb-2">Aguardando Localização</h2>
+            <p class="text-gray-600 mb-6 text-sm px-4">Por favor, permita o acesso à sua localização para continuar.</p>
+            <div class="flex items-center justify-center">
+                <i class="fas fa-spinner fa-spin text-2xl text-blue-600"></i>
             </div>
         </div>
     </main>
@@ -75,7 +77,9 @@
             profile: null, // 'pme', 'adesao', 'cpf'
             lives: { '0-18': 0, '19-23': 0, '24-58': 0 },
             totalLives: 0,
-            selectedPlans: []
+            selectedPlans: [],
+            locationGranted: false, // Flag para verificar se localização foi concedida
+            city: null // Nome da cidade obtida
         };
 
         // --- DADOS MOCK (Simulando Banco de Dados) ---
@@ -89,6 +93,23 @@
 
         // --- FUNÇÕES DE NAVEGAÇÃO ---
         function nextStep(step) {
+            // Verificar se a localização foi concedida antes de permitir avançar
+            if (!state.locationGranted) {
+                // Mostrar mensagem de bloqueio
+                const container = document.getElementById('step-container');
+                container.innerHTML = `
+                    <div class="p-8 text-center min-h-[500px] flex flex-col justify-center items-center">
+                        <i class="fas fa-map-marker-alt text-6xl text-red-500 mb-4"></i>
+                        <h2 class="text-xl font-bold text-gray-800 mb-2">Localização Necessária</h2>
+                        <p class="text-gray-600 mb-6 text-sm px-4">É necessário permitir o acesso à sua localização para continuar usando o sistema.</p>
+                        <button onclick="requestLocation()" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition">
+                            <i class="fas fa-location-arrow mr-2"></i>Permitir Localização
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
             const container = document.getElementById('step-container');
 
             // Mostrar loading
@@ -398,16 +419,36 @@
                                 'Localização não identificada';
 
                     locationText.innerText = city;
+                    state.city = city;
+                    state.locationGranted = true; // Marca que a localização foi concedida
                     locationError.classList.add('hidden');
+
+                    // Se ainda não carregou a primeira etapa, carrega agora
+                    const container = document.getElementById('step-container');
+                    if (state.step === 1 && (container.innerHTML.includes('Aguardando Localização') || container.innerHTML.includes('Localização Necessária'))) {
+                        nextStep(1);
+                    }
                 } else {
                     locationText.innerText = 'Localização não identificada';
                     locationError.classList.add('hidden');
+                    // Mesmo sem cidade identificada, consideramos que a permissão foi concedida
+                    state.locationGranted = true;
+                    const container = document.getElementById('step-container');
+                    if (state.step === 1 && (container.innerHTML.includes('Aguardando Localização') || container.innerHTML.includes('Localização Necessária'))) {
+                        nextStep(1);
+                    }
                 }
             })
             .catch(error => {
                 console.error('Erro ao obter nome da cidade:', error);
                 const locationText = document.getElementById('location-text');
                 locationText.innerText = 'Erro ao carregar';
+                // Em caso de erro na API, ainda consideramos que a permissão foi concedida
+                state.locationGranted = true;
+                const container = document.getElementById('step-container');
+                if (state.step === 1 && (container.innerHTML.includes('Aguardando Localização') || container.innerHTML.includes('Localização Necessária'))) {
+                    nextStep(1);
+                }
             });
         }
 
@@ -419,10 +460,23 @@
             if (!navigator.geolocation) {
                 locationText.innerText = 'Navegador não suporta';
                 locationError.classList.remove('hidden');
+                state.locationGranted = false;
+
+                // Atualiza a tela principal para mostrar mensagem de erro
+                const container = document.getElementById('step-container');
+                container.innerHTML = `
+                    <div class="p-8 text-center min-h-[500px] flex flex-col justify-center items-center">
+                        <i class="fas fa-exclamation-triangle text-6xl text-red-500 mb-4"></i>
+                        <h2 class="text-xl font-bold text-gray-800 mb-2">Não conseguimos pegar sua localização</h2>
+                        <p class="text-gray-600 mb-6 text-sm px-4">Seu navegador não suporta geolocalização. Por favor, use um navegador mais recente.</p>
+                        <p class="text-xs text-gray-500 px-6">Recomendamos usar Chrome, Firefox, Safari ou Edge atualizados.</p>
+                    </div>
+                `;
                 return;
             }
 
             locationText.innerText = 'Solicitando...';
+            locationError.classList.add('hidden');
 
             navigator.geolocation.getCurrentPosition(
                 (position) => {
@@ -432,6 +486,21 @@
                 (error) => {
                     locationText.innerText = 'Permissão negada';
                     locationError.classList.remove('hidden');
+                    state.locationGranted = false;
+
+                    // Atualiza a tela principal para mostrar mensagem de erro
+                    const container = document.getElementById('step-container');
+                    container.innerHTML = `
+                        <div class="p-8 text-center min-h-[500px] flex flex-col justify-center items-center">
+                            <i class="fas fa-exclamation-triangle text-6xl text-red-500 mb-4"></i>
+                            <h2 class="text-xl font-bold text-gray-800 mb-2">Não conseguimos pegar sua localização</h2>
+                            <p class="text-gray-600 mb-6 text-sm px-4">É necessário permitir o acesso à sua localização para continuar usando o sistema.</p>
+                            <button onclick="requestLocation()" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition">
+                                <i class="fas fa-location-arrow mr-2"></i>Tentar Novamente
+                            </button>
+                            <p class="text-xs text-gray-500 mt-4 px-6">Verifique as configurações de privacidade do seu navegador e permita o acesso à localização.</p>
+                        </div>
+                    `;
 
                     // Adiciona evento de clique no container para tentar novamente
                     locationContainer.onclick = () => {
@@ -447,10 +516,11 @@
             );
         }
 
-        // Solicita localização quando a página carregar e carrega primeira etapa
+        // Solicita localização quando a página carregar
+        // A primeira etapa só será carregada após a localização ser concedida
         document.addEventListener('DOMContentLoaded', () => {
             requestLocation();
-            nextStep(1); // Carrega a primeira etapa
+            // Não carrega a primeira etapa imediatamente - será carregada após localização ser concedida
         });
     </script>
 </body>
