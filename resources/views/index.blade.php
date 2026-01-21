@@ -56,7 +56,7 @@
     </header>
 
     <!-- CONTAINER PRINCIPAL -->
-    <main id="step-container" class="w-full max-w-md bg-black rounded-xl shadow-lg overflow-hidden transition-smooth min-h-[500px] relative">
+    <main id="step-container" class="w-full max-w-md bg-white rounded-xl shadow-lg overflow-hidden transition-smooth min-h-[500px] relative">
         <!-- Conteúdo será carregado dinamicamente aqui -->
         <div class="flex items-center justify-center min-h-[500px]">
             <div class="text-center">
