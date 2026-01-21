@@ -13,7 +13,7 @@
 
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #F3F4F6; }
-        .azul-royal { color: #2563EB; }
+        .azul-royal { color:rgb(0, 0, 0); }
         .bg-azul-royal { background-color: #2563EB; }
         .dimmed { opacity: 0.4; filter: grayscale(80%); transition: all 0.3s ease; }
         .active-card { border: 2px solid #2563EB; box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.39); transform: scale(1.02); }
@@ -90,7 +90,7 @@
         // --- FUNÇÕES DE NAVEGAÇÃO ---
         function nextStep(step) {
             const container = document.getElementById('step-container');
-            
+
             // Mostrar loading
             container.innerHTML = `
                 <div class="flex items-center justify-center min-h-[500px]">
@@ -120,7 +120,7 @@
 
                     // Reinicializar eventos específicos da etapa
                     initializeStep(step);
-                    
+
                     window.scrollTo(0, 0);
                 })
                 .catch(error => {
@@ -137,7 +137,7 @@
 
         function loadFinalStep() {
             const container = document.getElementById('step-container');
-            
+
             container.innerHTML = `
                 <div class="flex items-center justify-center min-h-[500px]">
                     <div class="text-center">
