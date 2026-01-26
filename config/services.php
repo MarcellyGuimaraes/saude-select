@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'simulador_online' => [
+        'base_url' => env('SIMULADOR_ONLINE_BASE_URL', 'https://app.simuladoronline.com'),
+        'login_path' => env('SIMULADOR_ONLINE_LOGIN_PATH', '/login/7789'),
+        'username' => env('SIMULADOR_ONLINE_USERNAME'),
+        'password' => env('SIMULADOR_ONLINE_PASSWORD'),
+        'verify_ssl' => env('SIMULADOR_ONLINE_VERIFY_SSL', false),
+    ],
+
 ];

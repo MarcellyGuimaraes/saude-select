@@ -1,8 +1,8 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\StepController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
@@ -16,5 +16,8 @@ Route::view('dashboard', 'dashboard')
 
 Route::get('/step/{step}', [StepController::class, 'show'])->name('step.show');
 Route::get('/step-final', [StepController::class, 'final'])->name('step.final');
+
+// API para buscar hospitais (Step 1)
+Route::get('/api/hospitais/buscar', [StepController::class, 'buscarHospitais'])->name('api.hospitais.buscar');
 
 require __DIR__.'/settings.php';

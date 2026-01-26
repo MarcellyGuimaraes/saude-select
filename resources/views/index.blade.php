@@ -82,14 +82,7 @@
             city: null // Nome da cidade obtida
         };
 
-        // --- DADOS MOCK (Simulando Banco de Dados) ---
-        const hospitalsDB = [
-            "Complexo Hospitalar de Niterói (CHN)",
-            "Hospital Icaraí",
-            "Hospital Santa Martha",
-            "Hospital de Olhos Niterói",
-            "Clínica São Geraldo"
-        ];
+        // Dados mock removidos - agora usa API real
 
         // --- FUNÇÕES DE NAVEGAÇÃO ---
         function nextStep(step) {
@@ -215,35 +208,79 @@
         function initializeStep1() {
             const searchInput = document.getElementById('hospital-search');
             const listDiv = document.getElementById('autocomplete-list');
+            let timeoutId = null;
 
             if (searchInput && listDiv) {
                 searchInput.addEventListener('input', (e) => {
-                    const val = e.target.value.toLowerCase();
+                    const val = e.target.value.trim();
                     listDiv.innerHTML = '';
 
-                    if (val.length > 0) {
-                        const filtered = hospitalsDB.filter(h => h.toLowerCase().includes(val));
-                        if (filtered.length > 0) {
-                            listDiv.classList.remove('hidden');
-                            filtered.forEach(h => {
-                                const div = document.createElement('div');
-                                div.className = "p-3 hover:bg-gray-100 cursor-pointer text-sm border-b";
-                                div.innerText = h;
-                                div.onclick = () => {
-                                    searchInput.value = h;
-                                    state.hospital = h;
-                                    listDiv.classList.add('hidden');
-                                    nextStep(2);
-                                };
-                                listDiv.appendChild(div);
-                            });
-                        } else {
-                            listDiv.classList.add('hidden');
-                        }
-                    } else {
+                    // Limpa timeout anterior
+                    if (timeoutId) {
+                        clearTimeout(timeoutId);
+                    }
+
+                    if (val.length < 1) {
                         listDiv.classList.add('hidden');
+                        return;
+                    }
+
+                    // Debounce: aguarda 300ms após o usuário parar de digitar
+                    timeoutId = setTimeout(() => {
+                        buscarHospitaisAPI(val, listDiv, searchInput);
+                    }, 300);
+                });
+            }
+        }
+
+        async function buscarHospitaisAPI(query, listDiv, searchInput) {
+            try {
+                // Mostra loading
+                listDiv.innerHTML = '<div class="p-3 text-sm text-gray-500 text-center">Buscando...</div>';
+                listDiv.classList.remove('hidden');
+
+                const params = new URLSearchParams({
+                    regiao: 2,
+                    q: query,
+                });
+
+                const response = await fetch(`/api/hospitais/buscar?${params}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
                     }
                 });
+
+                const data = await response.json();
+
+                listDiv.innerHTML = '';
+
+                if (data.success && data.hospitais && data.hospitais.length > 0) {
+                    data.hospitais.forEach(hospital => {
+                        const nome = hospital.nome || hospital.name || '';
+                        if (!nome) return;
+
+                        const div = document.createElement('div');
+                        div.className = "p-3 hover:bg-gray-100 cursor-pointer text-sm border-b";
+                        div.innerText = nome;
+                        div.onclick = () => {
+                            searchInput.value = nome;
+                            state.hospital = nome;
+                            listDiv.classList.add('hidden');
+                            nextStep(2);
+                        };
+                        listDiv.appendChild(div);
+                    });
+                    listDiv.classList.remove('hidden');
+                } else {
+                    listDiv.innerHTML = '<div class="p-3 text-sm text-gray-500 text-center">Nenhum hospital encontrado</div>';
+                    listDiv.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Erro ao buscar hospitais:', error);
+                listDiv.innerHTML = '<div class="p-3 text-sm text-red-500 text-center">Erro ao buscar hospitais</div>';
+                listDiv.classList.remove('hidden');
             }
         }
 
