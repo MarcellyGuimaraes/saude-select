@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>SaúdeSelect 2026 - MVP</title>
     <!-- Tailwind CSS (Via CDN para não depender de Node) -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -74,6 +75,7 @@
         const state = {
             step: 1,
             hospital: '',
+            hospitalId: null,
             profile: null, // 'pme', 'adesao', 'cpf'
             lives: { '0-18': 0, '19-23': 0, '24-58': 0 },
             totalLives: 0,
@@ -267,6 +269,7 @@
                         div.onclick = () => {
                             searchInput.value = nome;
                             state.hospital = nome;
+                            state.hospitalId = hospital.id || null;
                             listDiv.classList.add('hidden');
                             nextStep(2);
                         };
@@ -294,6 +297,7 @@
 
         function initializeStep4() {
             renderResults();
+            buscarPlanosAPI();
         }
 
         function initializeStep5() {
@@ -392,20 +396,115 @@
             document.getElementById('result-profile-name').innerText = title;
         }
 
+        async function buscarPlanosAPI() {
+            try {
+                // Mostra loading
+                const container = document.querySelector('#step-4 .p-4.space-y-4');
+                if (container) {
+                    container.innerHTML = '<div class="p-8 text-center"><i class="fas fa-spinner fa-spin text-4xl text-blue-600 mb-4"></i><p class="text-gray-600">Buscando planos...</p></div>';
+                }
+
+                const response = await fetch('/api/planos/buscar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({
+                        profile: state.profile,
+                        lives: state.lives,
+                        hospital: state.hospital,
+                        hospitalId: state.hospitalId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.planos && data.planos.length > 0) {
+                    renderizarPlanos(data.planos);
+                } else {
+                    const container = document.querySelector('#step-4 .p-4.space-y-4');
+                    if (container) {
+                        container.innerHTML = '<div class="p-8 text-center"><i class="fas fa-exclamation-triangle text-4xl text-yellow-500 mb-4"></i><p class="text-gray-600">Nenhum plano encontrado</p></div>';
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao buscar planos:', error);
+                const container = document.querySelector('#step-4 .p-4.space-y-4');
+                if (container) {
+                    container.innerHTML = '<div class="p-8 text-center"><i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-4"></i><p class="text-red-600">Erro ao buscar planos</p></div>';
+                }
+            }
+        }
+
+        function renderizarPlanos(planos) {
+            const container = document.querySelector('#step-4 .p-4.space-y-4');
+            if (!container) return;
+
+            container.innerHTML = '';
+
+            planos.forEach(plano => {
+                const card = document.createElement('div');
+                card.className = 'plan-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 relative transition-all cursor-pointer';
+                card.onclick = () => togglePlanSelection(card);
+                card.setAttribute('data-plano-id', plano.id);
+
+                // Logo da operadora
+                const logoHtml = plano.operadora_logo 
+                    ? `<img src="${plano.operadora_logo}" alt="${plano.operadora}" class="h-8 w-auto mb-2" />`
+                    : '<div class="bg-gray-200 h-8 w-20 rounded animate-pulse mb-2"></div>';
+
+                // Badges
+                const badges = [];
+                if (plano.operadora_descricao && plano.operadora_descricao.includes('Copart')) {
+                    badges.push('<span class="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded border border-blue-100">C/ Copar</span>');
+                }
+                if (plano.acomodacao_sigla === 'AMB') {
+                    badges.push('<span class="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded border border-blue-100">AMB</span>');
+                } else if (plano.acomodacao_sigla === 'E') {
+                    badges.push('<span class="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded border border-blue-100">Enfermaria</span>');
+                } else if (plano.acomodacao_sigla === 'A') {
+                    badges.push('<span class="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded border border-blue-100">Apartamento</span>');
+                }
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        ${logoHtml}
+                        <span class="text-[10px] font-bold bg-green-100 text-green-700 px-2 py-1 rounded">MATCH TÉCNICO</span>
+                    </div>
+                    <h3 class="font-bold text-gray-800 text-lg">${plano.nome || plano.operadora}</h3>
+                    <p class="text-xs text-gray-500 mb-3">${plano.acomodacao} | ${plano.operadora}</p>
+                    ${badges.length > 0 ? `<div class="flex gap-2 mb-3">${badges.join('')}</div>` : ''}
+                    <div class="mt-4 pt-3 border-t border-dashed border-gray-200 flex justify-between items-end">
+                        <div class="text-xs text-gray-400">Mensalidade:</div>
+                        <div class="blur-price text-xl font-bold text-blue-600 bg-gray-100 px-2 rounded">R$ --</div>
+                    </div>
+                    <div class="selection-check absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden">
+                        <i class="fas fa-check-circle text-4xl text-blue-600 bg-white rounded-full"></i>
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
         function togglePlanSelection(card) {
             // Logica visual simples de seleção
             const check = card.querySelector('.selection-check');
             const isSelected = !check.classList.contains('hidden');
+            const planoId = parseInt(card.getAttribute('data-plano-id'));
 
             if (isSelected) {
                 check.classList.add('hidden');
                 card.classList.remove('ring-2', 'ring-green-500');
-                state.selectedPlans.pop();
+                state.selectedPlans = state.selectedPlans.filter(id => id !== planoId);
             } else {
                 if (state.selectedPlans.length >= 3) return; // Max 3
                 check.classList.remove('hidden');
                 card.classList.add('ring-2', 'ring-green-500');
-                state.selectedPlans.push(1);
+                state.selectedPlans.push(planoId);
             }
 
             document.getElementById('selected-count').innerText = state.selectedPlans.length;

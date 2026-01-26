@@ -20,4 +20,7 @@ Route::get('/step-final', [StepController::class, 'final'])->name('step.final');
 // API para buscar hospitais (Step 1)
 Route::get('/api/hospitais/buscar', [StepController::class, 'buscarHospitais'])->name('api.hospitais.buscar');
 
+// API para buscar planos (Step 4)
+Route::post('/api/planos/buscar', [StepController::class, 'buscarPlanos'])->name('api.planos.buscar');
+
 require __DIR__.'/settings.php';

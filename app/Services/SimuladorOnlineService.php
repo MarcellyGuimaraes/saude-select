@@ -201,4 +201,137 @@ class SimuladorOnlineService
 
         return $json;
     }
+
+    /**
+     * Busca planos de saúde (tenta primeiro, faz login se necessário)
+     */
+    public function buscarPlanos(array $dadosSimulacao): string
+    {
+        // Prepara dados do formulário (campos fixos conforme especificação)
+        $formData = [
+            'simulacao[destNome]' => '',
+            'simulacao[destContato]' => '',
+            'simulacao[destEmail]' => '',
+            'simulacao[tipoTabela]' => $dadosSimulacao['tipoTabela'] ?? 2,
+            'simulacao[tipoPlano]' => 1, // Fixo
+            'simulacao[acomodacao]' => '',
+            'simulacao[totalVidas]' => $dadosSimulacao['totalVidas'] ?? 0,
+            'simulacao[filtros][abrangencia]' => '',
+            'simulacao[filtros][tipoOperadora]' => '',
+            'simulacao[filtros][segmento]' => '',
+            'simulacao[filtros][fatormoder]' => '',
+            'simulacao[regiao]' => $dadosSimulacao['regiao'] ?? 2,
+            'simulacao[corretorEmail]' => '',
+            'simulacao[textoInicial]' => 'Primeiramente, agradecemos pelo seu contato.\r\nInformamos que os custos e as condições abaixo são determinadas por suas respectivas operadoras.\r\n',
+        ];
+
+        // Adiciona info (fixo: sempre envia 1, 2, 3, 4, 5)
+        $formData['simulacao[info][0]'] = 1;
+        $formData['simulacao[info][1]'] = 2;
+        $formData['simulacao[info][2]'] = 3;
+        $formData['simulacao[info][3]'] = 4;
+        $formData['simulacao[info][4]'] = 5;
+
+        // Se houver hospital selecionado, adiciona ao info
+        if (isset($dadosSimulacao['info']) && is_array($dadosSimulacao['info'])) {
+            foreach ($dadosSimulacao['info'] as $index => $info) {
+                $formData['simulacao[info]['.(5 + $index).']'] = $info;
+            }
+        }
+
+        // Adiciona faixas etárias
+        if (isset($dadosSimulacao['faixas']) && is_array($dadosSimulacao['faixas'])) {
+            foreach ($dadosSimulacao['faixas'] as $index => $faixa) {
+                $formData["simulacao[faixas][{$index}][vidas]"] = $faixa['vidas'] ?? 0;
+            }
+        }
+
+        // Adiciona dados de adesão (se houver)
+        if (isset($dadosSimulacao['adesao'])) {
+            $adesao = $dadosSimulacao['adesao'];
+            $formData['simulacao[adesao][opes]'] = $adesao['opes'] ?? '';
+            $formData['simulacao[adesao][administradora]'] = $adesao['administradora'] ?? '';
+            $formData['simulacao[adesao][entidade]'] = $adesao['entidade'] ?? '';
+            $formData['simulacao[adesao][profissao]'] = $adesao['profissao'] ?? '';
+        }
+
+        // Busca token CSRF da página de simulação
+        /** @var Response $pageResponse */
+        $pageResponse = $this->client()->get($this->baseUrl.'/simulacao/nova');
+        $pageHtml = $pageResponse->body();
+        $csrfToken = $this->extractCsrfTokenFromSimulacao($pageHtml);
+
+        if ($csrfToken) {
+            $formData['simulacao[_token]'] = $csrfToken;
+        }
+
+        // Tenta buscar primeiro (pode já estar autenticado)
+        /** @var Response $response */
+        $response = $this->client()
+            ->asForm()
+            ->withHeaders([
+                'Accept' => '*/*',
+                'Accept-Language' => 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+                'Content-Type' => 'application/x-www-form-urlencoded; charset=UTF-8',
+                'Origin' => $this->baseUrl,
+                'Referer' => $this->baseUrl.'/simulacao/nova',
+                'X-Requested-With' => 'XMLHttpRequest',
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
+            ])
+            ->post($this->baseUrl.'/simulacao/planos', $formData);
+
+        $body = $response->body();
+
+        // Verifica se retornou HTML válido com tabela de planos
+        $temTabelaPlanos = str_contains($body, 'sim-op-planos') || str_contains($body, '<table');
+
+        // Se não conseguiu ou retornou HTML de erro/login, faz login e tenta novamente
+        if (! $response->successful() || ! $temTabelaPlanos) {
+            $this->login();
+
+            // Busca token CSRF novamente após login
+            $pageResponse = $this->client()->get($this->baseUrl.'/simulacao/nova');
+            $pageHtml = $pageResponse->body();
+            $csrfToken = $this->extractCsrfTokenFromSimulacao($pageHtml);
+
+            if ($csrfToken) {
+                $formData['simulacao[_token]'] = $csrfToken;
+            }
+
+            // Tenta novamente após login
+            $response = $this->client()
+                ->asForm()
+                ->withHeaders([
+                    'Accept' => '*/*',
+                    'Accept-Language' => 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+                    'Content-Type' => 'application/x-www-form-urlencoded; charset=UTF-8',
+                    'Origin' => $this->baseUrl,
+                    'Referer' => $this->baseUrl.'/simulacao/nova',
+                    'X-Requested-With' => 'XMLHttpRequest',
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
+                ])
+                ->post($this->baseUrl.'/simulacao/planos', $formData);
+
+            $body = $response->body();
+        }
+
+        if (! $response->successful()) {
+            throw new \Exception('Erro ao buscar planos: Status '.$response->status().' - Body: '.substr($body, 0, 200));
+        }
+
+        return $body;
+    }
+
+    /**
+     * Extrai token CSRF da página de simulação
+     */
+    protected function extractCsrfTokenFromSimulacao(string $html): ?string
+    {
+        // Procura pelo padrão: name="simulacao[_token]" value="..."
+        if (preg_match('/name="simulacao\[_token\]"\s+value="([^"]+)"/', $html, $matches)) {
+            return $matches[1];
+        }
+
+        return null;
+    }
 }
