@@ -80,8 +80,10 @@
             lives: { '0-18': 0, '19-23': 0, '24-58': 0 },
             totalLives: 0,
             selectedPlans: [],
-            locationGranted: false, // Flag para verificar se localização foi concedida
-            city: null // Nome da cidade obtida
+            locationGranted: false,
+            city: null,
+            planos: [],
+            planosPaginaAtual: 1
         };
 
         // Dados mock removidos - agora usa API real
@@ -423,7 +425,9 @@
                 const data = await response.json();
 
                 if (data.success && data.planos && data.planos.length > 0) {
-                    renderizarPlanos(data.planos);
+                    state.planos = data.planos;
+                    state.planosPaginaAtual = 1;
+                    renderizarPlanos();
                 } else {
                     const container = document.querySelector('#step-4 .p-4.space-y-4');
                     if (container) {
@@ -439,24 +443,29 @@
             }
         }
 
-        function renderizarPlanos(planos) {
+        const PLANOS_POR_PAGINA = 5;
+
+        function renderizarPlanos() {
             const container = document.querySelector('#step-4 .p-4.space-y-4');
             if (!container) return;
 
+            const pagina = state.planosPaginaAtual || 1;
+            const totalPaginas = Math.max(1, Math.ceil(state.planos.length / PLANOS_POR_PAGINA));
+            const inicio = (pagina - 1) * PLANOS_POR_PAGINA;
+            const toShow = state.planos.slice(inicio, inicio + PLANOS_POR_PAGINA);
             container.innerHTML = '';
 
-            planos.forEach(plano => {
+            toShow.forEach(plano => {
+                const isSelected = state.selectedPlans.includes(plano.id);
                 const card = document.createElement('div');
-                card.className = 'plan-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 relative transition-all cursor-pointer';
+                card.className = 'plan-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 relative transition-all cursor-pointer' + (isSelected ? ' ring-2 ring-green-500' : '');
                 card.onclick = () => togglePlanSelection(card);
                 card.setAttribute('data-plano-id', plano.id);
 
-                // Logo da operadora
-                const logoHtml = plano.operadora_logo 
+                const logoHtml = plano.operadora_logo
                     ? `<img src="${plano.operadora_logo}" alt="${plano.operadora}" class="h-8 w-auto mb-2" />`
                     : '<div class="bg-gray-200 h-8 w-20 rounded animate-pulse mb-2"></div>';
 
-                // Badges
                 const badges = [];
                 if (plano.operadora_descricao && plano.operadora_descricao.includes('Copart')) {
                     badges.push('<span class="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded border border-blue-100">C/ Copar</span>');
@@ -481,13 +490,59 @@
                         <div class="text-xs text-gray-400">Mensalidade:</div>
                         <div class="blur-price text-xl font-bold text-blue-600 bg-gray-100 px-2 rounded">R$ --</div>
                     </div>
-                    <div class="selection-check absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden">
+                    <div class="selection-check absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 ${isSelected ? '' : 'hidden'}">
                         <i class="fas fa-check-circle text-4xl text-blue-600 bg-white rounded-full"></i>
                     </div>
                 `;
 
                 container.appendChild(card);
             });
+
+            if (totalPaginas > 1) {
+                const pagWrap = document.createElement('div');
+                pagWrap.className = 'pt-4 pb-2 flex flex-col items-center gap-3';
+                const paginas = botoesPagina(pagina, totalPaginas);
+                let html = `<p class="text-xs text-gray-500">Página ${pagina} de ${totalPaginas} · ${state.planos.length} planos (${PLANOS_POR_PAGINA} por página)</p>`;
+                html += '<div class="flex flex-wrap justify-center items-center gap-1">';
+                if (pagina > 1) {
+                    html += `<button type="button" onclick="irParaPagina(${pagina - 1})" class="w-9 h-9 rounded-lg border border-gray-300 hover:bg-gray-100 flex items-center justify-center text-sm" aria-label="Anterior"><i class="fas fa-chevron-left"></i></button>`;
+                }
+                paginas.forEach(p => {
+                    if (p === '...') {
+                        html += `<span class="px-1 text-gray-400">…</span>`;
+                    } else {
+                        const ativa = p === pagina ? ' bg-blue-600 text-white border-blue-600' : ' border-gray-300 hover:bg-gray-100';
+                        html += `<button type="button" onclick="irParaPagina(${p})" class="w-9 h-9 rounded-lg border flex items-center justify-center text-sm font-medium${ativa}">${p}</button>`;
+                    }
+                });
+                if (pagina < totalPaginas) {
+                    html += `<button type="button" onclick="irParaPagina(${pagina + 1})" class="w-9 h-9 rounded-lg border border-gray-300 hover:bg-gray-100 flex items-center justify-center text-sm" aria-label="Próxima"><i class="fas fa-chevron-right"></i></button>`;
+                }
+                html += '</div>';
+                pagWrap.innerHTML = html;
+                container.appendChild(pagWrap);
+            }
+        }
+
+        function botoesPagina(atual, total) {
+            if (total <= 7) {
+                return Array.from({ length: total }, (_, i) => i + 1);
+            }
+            const out = [1];
+            if (atual > 3) out.push('...');
+            for (let i = Math.max(2, atual - 1); i <= Math.min(total - 1, atual + 1); i++) {
+                if (!out.includes(i)) out.push(i);
+            }
+            if (atual < total - 2) out.push('...');
+            if (total > 1) out.push(total);
+            return out;
+        }
+
+        function irParaPagina(n) {
+            state.planosPaginaAtual = n;
+            renderizarPlanos();
+            const step = document.getElementById('step-4');
+            if (step) step.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         function togglePlanSelection(card) {

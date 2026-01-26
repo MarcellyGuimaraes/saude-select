@@ -129,7 +129,7 @@ class StepController extends Controller
             $faixas = [];
             $faixas[0] = ['vidas' => (int) ($lives['0-18'] ?? 0)]; // 0-18
             $faixas[1] = ['vidas' => (int) ($lives['19-23'] ?? 0)]; // 19-23
-            
+
             // Distribui 24-58 nas faixas 2-9 (24-28, 29-33, 34-38, 39-43, 44-48, 49-53, 54-58, 59+)
             $vidas24_58 = (int) ($lives['24-58'] ?? 0);
             // Por enquanto, coloca tudo na faixa_2 (24-28) como simplificação
@@ -222,9 +222,11 @@ class StepController extends Controller
                 $acomodacaoNode = $xpath->query('.//span[@class="tipsy"]', $planoLi)->item(0);
                 $acomodacao = $acomodacaoNode ? trim($acomodacaoNode->textContent) : '';
 
+                if ($acomodacao === 'AMB') {
+                    continue;
+                }
                 // Mapeia acomodação
                 $tipoAcomodacao = match ($acomodacao) {
-                    'AMB' => 'Ambulatório',
                     'E' => 'Enfermaria',
                     'A' => 'Apartamento',
                     default => $acomodacao,
