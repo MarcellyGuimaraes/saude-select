@@ -119,24 +119,15 @@ class StepController extends Controller
                 default => 2,
             };
 
-            // Calcula total de vidas
             $lives = $request->input('lives', []);
-            $totalVidas = (int) ($lives['0-18'] ?? 0) + (int) ($lives['19-23'] ?? 0) + (int) ($lives['24-58'] ?? 0);
+            $keys = ['0-18', '19-23', '24-28', '29-33', '34-38', '39-43', '44-48', '49-53', '54-58', '59+'];
 
-            // Mapeia faixas do frontend para faixas da API
-            // Frontend: 0-18, 19-23, 24-58
-            // API: faixa_0 (0-18), faixa_1 (19-23), faixa_2 (24-28), faixa_3 (29-33), etc.
+            $totalVidas = 0;
             $faixas = [];
-            $faixas[0] = ['vidas' => (int) ($lives['0-18'] ?? 0)]; // 0-18
-            $faixas[1] = ['vidas' => (int) ($lives['19-23'] ?? 0)]; // 19-23
-
-            // Distribui 24-58 nas faixas 2-9 (24-28, 29-33, 34-38, 39-43, 44-48, 49-53, 54-58, 59+)
-            $vidas24_58 = (int) ($lives['24-58'] ?? 0);
-            // Por enquanto, coloca tudo na faixa_2 (24-28) como simplificação
-            // TODO: Distribuir melhor entre as faixas se necessário
-            $faixas[2] = ['vidas' => $vidas24_58];
-            for ($i = 3; $i < 10; $i++) {
-                $faixas[$i] = ['vidas' => 0];
+            foreach ($keys as $i => $key) {
+                $v = (int) ($lives[$key] ?? 0);
+                $faixas[$i] = ['vidas' => $v];
+                $totalVidas += $v;
             }
 
             // Prepara dados para a API

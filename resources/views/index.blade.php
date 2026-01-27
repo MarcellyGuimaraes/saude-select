@@ -77,7 +77,7 @@
             hospital: '',
             hospitalId: null,
             profile: null, // 'pme', 'adesao', 'cpf'
-            lives: { '0-18': 0, '19-23': 0, '24-58': 0 },
+            lives: { '0-18': 0, '19-23': 0, '24-28': 0, '29-33': 0, '34-38': 0, '39-43': 0, '44-48': 0, '49-53': 0, '54-58': 0, '59+': 0 },
             totalLives: 0,
             selectedPlans: [],
             locationGranted: false,
@@ -375,8 +375,8 @@
             }
 
             // Regra: Criança Sozinha (0-18 > 0 e resto 0)
-            const criancas = state.lives['0-18'];
-            const adultos = state.lives['19-23'] + state.lives['24-58'];
+            const criancas = state.lives['0-18'] || 0;
+            const adultos = Object.entries(state.lives).filter(([k]) => k !== '0-18').reduce((a, [, v]) => a + (v || 0), 0);
 
             if (criancas > 0 && adultos === 0) {
                 if (state.profile !== 'cpf') {
