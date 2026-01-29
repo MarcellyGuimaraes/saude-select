@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use DOMDocument;
+use DOMXPath;
 use GuzzleHttp\Cookie\CookieJar;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
@@ -9,6 +11,13 @@ use Illuminate\Support\Facades\Http;
 
 class SimuladorOnlineService
 {
+    protected const int DefaultRegionId = 2;
+
+    protected const array AgeBracketKeys = [
+        '0-18', '19-23', '24-28', '29-33', '34-38',
+        '39-43', '44-48', '49-53', '54-58', '59+',
+    ];
+
     protected string $baseUrl;
 
     protected string $loginPath;
@@ -29,8 +38,329 @@ class SimuladorOnlineService
     }
 
     /**
-     * Cria um cliente HTTP com cookies compartilhados
+     * Search hospitals for autocomplete (Step 1). Returns formatted data plus meta for optional debug.
+     *
+     * @return array{hospitais: array<int, array{id: int|null, nome: string}>, query: string, region: int, raw: array}
      */
+    public function searchHospitalsForAutocomplete(string $query, ?int $regionId = null): array
+    {
+        $regionId = $regionId ?? self::DefaultRegionId;
+        $raw = $this->fetchHospitalsFromApi($regionId, $query);
+        $hospitais = $this->formatHospitalsForAutocomplete($raw);
+
+        return [
+            'hospitais' => $hospitais,
+            'query' => $query,
+            'region' => $regionId,
+            'raw' => $raw,
+        ];
+    }
+
+    /**
+     * Search health plans (Step 4). Builds payload, fetches HTML, parses and returns structured data.
+     *
+     * @param  array{profile: string, lives: array<string, int>, hospital?: string, hospitalId?: int}  $validatedInput
+     * @return array<int, array<string, mixed>>
+     */
+    public function searchPlans(array $validatedInput): array
+    {
+        $payload = $this->buildSimulationPayload($validatedInput);
+        $html = $this->fetchPlansHtml($payload);
+
+        return $this->parsePlansFromHtml($html);
+    }
+
+    /**
+     * @return array<int, array{id: int|null, nome: string}>
+     */
+    protected function formatHospitalsForAutocomplete(array $raw): array
+    {
+        $formatted = [];
+
+        if (! is_array($raw)) {
+            return $formatted;
+        }
+
+        foreach ($raw as $item) {
+            if (is_array($item)) {
+                $name = $item['full_descricao'] ?? null;
+                if (empty($name)) {
+                    foreach ($item as $key => $value) {
+                        if (is_string($value) && ! is_numeric($key)) {
+                            $name = $value;
+                            break;
+                        }
+                    }
+                }
+                if ($name) {
+                    $formatted[] = [
+                        'id' => $item['id'] ?? $item['codigo'] ?? null,
+                        'nome' => $name,
+                    ];
+                }
+            } elseif (is_string($item)) {
+                $formatted[] = ['id' => null, 'nome' => $item];
+            }
+        }
+
+        return $formatted;
+    }
+
+    protected function fetchHospitalsFromApi(int $regionId, string $query): array
+    {
+        $response = $this->performHospitalsRequest($regionId, $query);
+        $body = $response->body();
+
+        $validJson = $response->successful() && $body !== '' && (str_starts_with(trim($body), '[') || str_starts_with(trim($body), '{'));
+        if (! $validJson) {
+            $this->login();
+            $response = $this->performHospitalsRequest($regionId, $query);
+            $body = $response->body();
+        }
+
+        if (! $response->successful()) {
+            throw new \Exception('Erro ao buscar hospitais: Status '.$response->status().' - Body: '.substr($body, 0, 200));
+        }
+
+        $decoded = $response->json();
+        if ($decoded === null && $body !== '') {
+            throw new \Exception('Resposta não é JSON válido. Body: '.substr($body, 0, 500));
+        }
+
+        if (! is_array($decoded)) {
+            return [];
+        }
+        if (empty($decoded)) {
+            return [];
+        }
+        if (isset($decoded[0])) {
+            return $decoded;
+        }
+        $extracted = $decoded['data'] ?? $decoded['results'] ?? $decoded['hospitais'] ?? $decoded['items'] ?? $decoded;
+
+        return is_array($extracted) ? $extracted : [];
+    }
+
+    protected function performHospitalsRequest(int $regionId, string $query): Response
+    {
+        $headers = [
+            'Accept' => 'application/json, text/javascript, */*; q=0.01',
+            'Accept-Language' => 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Referer' => $this->baseUrl.'/comparativo/',
+            'X-Requested-With' => 'XMLHttpRequest',
+            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
+        ];
+
+        /** @var Response $response */
+        $response = $this->client()
+            ->withHeaders($headers)
+            ->get($this->baseUrl.'/ope/adm/credenciados/1.json', [
+                'regiao' => $regionId,
+                'q' => $query,
+            ]);
+
+        return $response;
+    }
+
+    /**
+     * @param  array{profile: string, lives: array<string, int>, hospitalId?: int}  $input
+     * @return array{tipoTabela: int, totalVidas: int, regiao: int, faixas: array<int, array{vidas: int}>, info?: array<int, int>}
+     */
+    protected function buildSimulationPayload(array $input): array
+    {
+        $profile = $input['profile'] ?? 'cpf';
+        $tableType = match ($profile) {
+            'pme' => 3,
+            'adesao' => 4,
+            'cpf' => 2,
+            default => 2,
+        };
+
+        $lives = $input['lives'] ?? [];
+        $faixas = [];
+        $totalVidas = 0;
+        foreach (self::AgeBracketKeys as $index => $key) {
+            $vidas = (int) ($lives[$key] ?? 0);
+            $faixas[$index] = ['vidas' => $vidas];
+            $totalVidas += $vidas;
+        }
+
+        $payload = [
+            'tipoTabela' => $tableType,
+            'totalVidas' => $totalVidas,
+            'regiao' => self::DefaultRegionId,
+            'faixas' => $faixas,
+        ];
+
+        $hospitalId = $input['hospitalId'] ?? null;
+        if ($hospitalId !== null && $hospitalId !== '') {
+            $payload['info'] = [(int) $hospitalId];
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @param  array{tipoTabela: int, totalVidas: int, regiao: int, faixas: array, info?: array<int, int>}  $payload
+     */
+    protected function fetchPlansHtml(array $payload): string
+    {
+        $formData = $this->buildPlansFormData($payload);
+        $response = $this->performPlansRequest($formData);
+        $body = $response->body();
+
+        $hasPlansTable = str_contains($body, 'sim-op-planos') || str_contains($body, '<table');
+        if (! $response->successful() || ! $hasPlansTable) {
+            $this->login();
+            $formData = $this->buildPlansFormData($payload);
+            $response = $this->performPlansRequest($formData);
+            $body = $response->body();
+        }
+
+        if (! $response->successful()) {
+            throw new \Exception('Erro ao buscar planos: Status '.$response->status().' - Body: '.substr($body, 0, 200));
+        }
+
+        return $body;
+    }
+
+    /**
+     * @param  array{tipoTabela: int, totalVidas: int, regiao: int, faixas: array, info?: array<int, int>}  $payload
+     * @return array<string, mixed>
+     */
+    protected function buildPlansFormData(array $payload): array
+    {
+        $form = [
+            'simulacao[destNome]' => '',
+            'simulacao[destContato]' => '',
+            'simulacao[destEmail]' => '',
+            'simulacao[tipoTabela]' => $payload['tipoTabela'] ?? 2,
+            'simulacao[tipoPlano]' => 1,
+            'simulacao[acomodacao]' => '',
+            'simulacao[totalVidas]' => $payload['totalVidas'] ?? 0,
+            'simulacao[filtros][abrangencia]' => '',
+            'simulacao[filtros][tipoOperadora]' => '',
+            'simulacao[filtros][segmento]' => '',
+            'simulacao[filtros][fatormoder]' => '',
+            'simulacao[regiao]' => $payload['regiao'] ?? 2,
+            'simulacao[corretorEmail]' => '',
+            'simulacao[textoInicial]' => 'Primeiramente, agradecemos pelo seu contato.\r\nInformamos que os custos e as condições abaixo são determinadas por suas respectivas operadoras.\r\n',
+        ];
+
+        $form['simulacao[info][0]'] = 1;
+        $form['simulacao[info][1]'] = 2;
+        $form['simulacao[info][2]'] = 3;
+        $form['simulacao[info][3]'] = 4;
+        $form['simulacao[info][4]'] = 5;
+        if (isset($payload['info']) && is_array($payload['info'])) {
+            foreach ($payload['info'] as $i => $id) {
+                $form['simulacao[info]['.(5 + $i).']'] = $id;
+            }
+        }
+
+        if (isset($payload['faixas']) && is_array($payload['faixas'])) {
+            foreach ($payload['faixas'] as $index => $faixa) {
+                $form["simulacao[faixas][{$index}][vidas]"] = $faixa['vidas'] ?? 0;
+            }
+        }
+
+        if (isset($payload['adesao']) && is_array($payload['adesao'])) {
+            $a = $payload['adesao'];
+            $form['simulacao[adesao][opes]'] = $a['opes'] ?? '';
+            $form['simulacao[adesao][administradora]'] = $a['administradora'] ?? '';
+            $form['simulacao[adesao][entidade]'] = $a['entidade'] ?? '';
+            $form['simulacao[adesao][profissao]'] = $a['profissao'] ?? '';
+        }
+
+        $pageHtml = $this->client()->get($this->baseUrl.'/simulacao/nova')->body();
+        if (preg_match('/name="simulacao\[_token\]"\s+value="([^"]+)"/', $pageHtml, $matches)) {
+            $form['simulacao[_token]'] = $matches[1];
+        }
+
+        return $form;
+    }
+
+    /**
+     * @param  array<string, mixed>  $formData
+     */
+    protected function performPlansRequest(array $formData): Response
+    {
+        $headers = [
+            'Accept' => '*/*',
+            'Accept-Language' => 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Content-Type' => 'application/x-www-form-urlencoded; charset=UTF-8',
+            'Origin' => $this->baseUrl,
+            'Referer' => $this->baseUrl.'/simulacao/nova',
+            'X-Requested-With' => 'XMLHttpRequest',
+            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
+        ];
+
+        /** @var Response $response */
+        $response = $this->client()
+            ->asForm()
+            ->withHeaders($headers)
+            ->post($this->baseUrl.'/simulacao/planos', $formData);
+
+        return $response;
+    }
+
+    /**
+     * Parse plans table HTML and return structured plan data.
+     *
+     * @return array<int, array{id: int, operadora: string, operadora_logo: string|null, operadora_descricao: string, nome: string, acomodacao: string, acomodacao_sigla: string, vigencia: string}>
+     */
+    protected function parsePlansFromHtml(string $html): array
+    {
+        $plans = [];
+        $dom = new DOMDocument;
+
+        libxml_use_internal_errors(true);
+        $dom->loadHTML('<?xml encoding="UTF-8">'.$html);
+        libxml_clear_errors();
+
+        $xpath = new DOMXPath($dom);
+        $operatorRows = $xpath->query('//tr[@class="sim-op-planos"]');
+
+        foreach ($operatorRows as $row) {
+            $pNode = $xpath->query('.//p', $row)->item(0);
+            $operatorName = $pNode ? trim($pNode->textContent) : '';
+            $imgNode = $xpath->query('.//img', $row)->item(0);
+            $operatorLogo = $imgNode instanceof \DOMElement ? $imgNode->getAttribute('src') : null;
+            $descNode = $xpath->query('.//b[@class="fz-7"]', $row)->item(0);
+            $operatorDesc = $descNode ? trim($descNode->textContent) : '';
+            $planItems = $xpath->query('.//ul[@class="collapser smallest planos ta-l"]/li', $row);
+
+            /** @var \DOMElement $planLi */
+            foreach ($planItems as $planLi) {
+                $tipsyNode = $xpath->query('.//span[@class="tipsy"]', $planLi)->item(0);
+                $accommodation = $tipsyNode ? trim($tipsyNode->textContent) : '';
+
+                if ($accommodation === 'AMB') {
+                    continue;
+                }
+
+                $accommodationLabel = match ($accommodation) {
+                    'E' => 'Enfermaria',
+                    'A' => 'Apartamento',
+                    default => $accommodation,
+                };
+                $nomeNode = $xpath->query('.//i', $planLi)->item(0);
+                $plans[] = [
+                    'id' => (int) $planLi->getAttribute('data-id'),
+                    'operadora' => $operatorName,
+                    'operadora_logo' => $operatorLogo,
+                    'operadora_descricao' => $operatorDesc,
+                    'nome' => $nomeNode ? trim($nomeNode->textContent) : '',
+                    'acomodacao' => $accommodationLabel,
+                    'acomodacao_sigla' => $accommodation,
+                    'vigencia' => $planLi->getAttribute('data-vi'),
+                ];
+            }
+        }
+
+        return $plans;
+    }
+
     protected function client(): PendingRequest
     {
         $verifySsl = config('services.simulador_online.verify_ssl', false);
@@ -45,21 +375,6 @@ class SimuladorOnlineService
         ]);
     }
 
-    /**
-     * Extrai o token CSRF do HTML
-     */
-    protected function extractCsrfToken(string $html): ?string
-    {
-        if (preg_match('/name="login\[_token\]"\s+value="([^"]+)"/', $html, $matches)) {
-            return $matches[1];
-        }
-
-        return null;
-    }
-
-    /**
-     * Realiza login na API SimuladorOnline
-     */
     public function login(?string $username = null, ?string $password = null): array
     {
         $username = $username ?? $this->username;
@@ -69,28 +384,23 @@ class SimuladorOnlineService
             throw new \Exception('Credenciais não configuradas no .env');
         }
 
-        // 1. Busca página de login para obter cookies e token CSRF
-        /** @var Response $loginPageResponse */
-        $loginPageResponse = $this->client()->get($this->baseUrl.$this->loginPath);
-        $loginPageHtml = $loginPageResponse->body();
-        $csrfToken = $this->extractCsrfToken($loginPageHtml);
+        $loginPageHtml = $this->client()->get($this->baseUrl.$this->loginPath)->body();
+        $csrfToken = null;
+        if (preg_match('/name="login\[_token\]"\s+value="([^"]+)"/', $loginPageHtml, $matches)) {
+            $csrfToken = $matches[1];
+        }
 
         if (! $csrfToken) {
             throw new \Exception('Não foi possível extrair o token CSRF da página de login');
         }
 
-        // 2. Faz POST para /login_check (mesmo endpoint do formulário HTML)
-        /** @var Response $response */
         $response = $this->client()->asForm()->post($this->baseUrl.'/login_check', [
             'login[usuario]' => $username,
             'login[senha]' => $password,
             'login[_token]' => $csrfToken,
         ]);
 
-        // Login bem-sucedido geralmente retorna 302 (redirect) ou 200
         $success = $response->successful() || $response->redirect();
-
-        // Extrai cookies do CookieJar
         $cookieJar = $response->cookies();
         $cookiesArray = [];
         $sessionId = null;
@@ -109,17 +419,13 @@ class SimuladorOnlineService
             'cookies' => $cookiesArray,
             'headers' => $response->headers(),
             'csrf_token' => $csrfToken,
-            'session_token' => $sessionId, // PHPSESSID - token de sessão
+            'session_token' => $sessionId,
         ];
     }
 
-    /**
-     * Verifica se está autenticado
-     */
     public function checkAuthentication(): bool
     {
         try {
-            /** @var Response $response */
             $response = $this->client()->get($this->baseUrl.'/ope/adm/credenciados/1.json', [
                 'regiao' => 2,
                 'q' => 'test',
@@ -129,209 +435,5 @@ class SimuladorOnlineService
         } catch (\Exception $e) {
             return false;
         }
-    }
-
-    /**
-     * Busca hospitais (tenta primeiro, faz login se necessário)
-     */
-    public function buscarHospitais(int $regiao, string $query): array
-    {
-        // Tenta buscar primeiro (pode já estar autenticado)
-        /** @var Response $response */
-        $response = $this->client()
-            ->withHeaders([
-                'Accept' => 'application/json, text/javascript, */*; q=0.01',
-                'Accept-Language' => 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
-                'Referer' => $this->baseUrl.'/comparativo/',
-                'X-Requested-With' => 'XMLHttpRequest',
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
-            ])
-            ->get($this->baseUrl.'/ope/adm/credenciados/1.json', [
-                'regiao' => $regiao,
-                'q' => $query,
-            ]);
-
-        // Verifica se retornou dados válidos (status 200 e conteúdo JSON)
-        $body = $response->body();
-        $isJson = ! empty($body) && $response->successful() && str_starts_with(trim($body), '[') || str_starts_with(trim($body), '{');
-
-        // Se não conseguiu ou retornou vazio/HTML, faz login e tenta novamente
-        if (! $response->successful() || ! $isJson || empty($body)) {
-            $this->login();
-
-            // Tenta novamente após login
-            $response = $this->client()
-                ->withHeaders([
-                    'Accept' => 'application/json, text/javascript, */*; q=0.01',
-                    'Accept-Language' => 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
-                    'Referer' => $this->baseUrl.'/comparativo/',
-                    'X-Requested-With' => 'XMLHttpRequest',
-                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
-                ])
-                ->get($this->baseUrl.'/ope/adm/credenciados/1.json', [
-                    'regiao' => $regiao,
-                    'q' => $query,
-                ]);
-
-            $body = $response->body();
-        }
-
-        if (! $response->successful()) {
-            throw new \Exception('Erro ao buscar hospitais: Status '.$response->status().' - Body: '.substr($body, 0, 200));
-        }
-
-        // Tenta decodificar JSON
-        $json = $response->json();
-
-        if ($json === null && ! empty($body)) {
-            // Se não conseguiu decodificar, retorna o body para debug
-            throw new \Exception('Resposta não é JSON válido. Body: '.substr($body, 0, 500));
-        }
-
-        // Se retornou um objeto, tenta extrair array de propriedades comuns
-        if (is_array($json) && ! empty($json) && ! isset($json[0])) {
-            // Pode ser um objeto com propriedades como 'data', 'results', 'hospitais', etc.
-            $json = $json['data'] ?? $json['results'] ?? $json['hospitais'] ?? $json['items'] ?? $json;
-        }
-
-        // Garante que retorna array
-        if (! is_array($json)) {
-            return [];
-        }
-
-        return $json;
-    }
-
-    /**
-     * Busca planos de saúde (tenta primeiro, faz login se necessário)
-     */
-    public function buscarPlanos(array $dadosSimulacao): string
-    {
-        // Prepara dados do formulário (campos fixos conforme especificação)
-        $formData = [
-            'simulacao[destNome]' => '',
-            'simulacao[destContato]' => '',
-            'simulacao[destEmail]' => '',
-            'simulacao[tipoTabela]' => $dadosSimulacao['tipoTabela'] ?? 2,
-            'simulacao[tipoPlano]' => 1, // Fixo
-            'simulacao[acomodacao]' => '',
-            'simulacao[totalVidas]' => $dadosSimulacao['totalVidas'] ?? 0,
-            'simulacao[filtros][abrangencia]' => '',
-            'simulacao[filtros][tipoOperadora]' => '',
-            'simulacao[filtros][segmento]' => '',
-            'simulacao[filtros][fatormoder]' => '',
-            'simulacao[regiao]' => $dadosSimulacao['regiao'] ?? 2,
-            'simulacao[corretorEmail]' => '',
-            'simulacao[textoInicial]' => 'Primeiramente, agradecemos pelo seu contato.\r\nInformamos que os custos e as condições abaixo são determinadas por suas respectivas operadoras.\r\n',
-        ];
-
-        // Adiciona info (fixo: sempre envia 1, 2, 3, 4, 5)
-        $formData['simulacao[info][0]'] = 1;
-        $formData['simulacao[info][1]'] = 2;
-        $formData['simulacao[info][2]'] = 3;
-        $formData['simulacao[info][3]'] = 4;
-        $formData['simulacao[info][4]'] = 5;
-
-        // Se houver hospital selecionado, adiciona ao info
-        if (isset($dadosSimulacao['info']) && is_array($dadosSimulacao['info'])) {
-            foreach ($dadosSimulacao['info'] as $index => $info) {
-                $formData['simulacao[info]['.(5 + $index).']'] = $info;
-            }
-        }
-
-        // Adiciona faixas etárias
-        if (isset($dadosSimulacao['faixas']) && is_array($dadosSimulacao['faixas'])) {
-            foreach ($dadosSimulacao['faixas'] as $index => $faixa) {
-                $formData["simulacao[faixas][{$index}][vidas]"] = $faixa['vidas'] ?? 0;
-            }
-        }
-
-        // Adiciona dados de adesão (se houver)
-        if (isset($dadosSimulacao['adesao'])) {
-            $adesao = $dadosSimulacao['adesao'];
-            $formData['simulacao[adesao][opes]'] = $adesao['opes'] ?? '';
-            $formData['simulacao[adesao][administradora]'] = $adesao['administradora'] ?? '';
-            $formData['simulacao[adesao][entidade]'] = $adesao['entidade'] ?? '';
-            $formData['simulacao[adesao][profissao]'] = $adesao['profissao'] ?? '';
-        }
-
-        // Busca token CSRF da página de simulação
-        /** @var Response $pageResponse */
-        $pageResponse = $this->client()->get($this->baseUrl.'/simulacao/nova');
-        $pageHtml = $pageResponse->body();
-        $csrfToken = $this->extractCsrfTokenFromSimulacao($pageHtml);
-
-        if ($csrfToken) {
-            $formData['simulacao[_token]'] = $csrfToken;
-        }
-
-        // Tenta buscar primeiro (pode já estar autenticado)
-        /** @var Response $response */
-        $response = $this->client()
-            ->asForm()
-            ->withHeaders([
-                'Accept' => '*/*',
-                'Accept-Language' => 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
-                'Content-Type' => 'application/x-www-form-urlencoded; charset=UTF-8',
-                'Origin' => $this->baseUrl,
-                'Referer' => $this->baseUrl.'/simulacao/nova',
-                'X-Requested-With' => 'XMLHttpRequest',
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
-            ])
-            ->post($this->baseUrl.'/simulacao/planos', $formData);
-
-        $body = $response->body();
-
-        // Verifica se retornou HTML válido com tabela de planos
-        $temTabelaPlanos = str_contains($body, 'sim-op-planos') || str_contains($body, '<table');
-
-        // Se não conseguiu ou retornou HTML de erro/login, faz login e tenta novamente
-        if (! $response->successful() || ! $temTabelaPlanos) {
-            $this->login();
-
-            // Busca token CSRF novamente após login
-            $pageResponse = $this->client()->get($this->baseUrl.'/simulacao/nova');
-            $pageHtml = $pageResponse->body();
-            $csrfToken = $this->extractCsrfTokenFromSimulacao($pageHtml);
-
-            if ($csrfToken) {
-                $formData['simulacao[_token]'] = $csrfToken;
-            }
-
-            // Tenta novamente após login
-            $response = $this->client()
-                ->asForm()
-                ->withHeaders([
-                    'Accept' => '*/*',
-                    'Accept-Language' => 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
-                    'Content-Type' => 'application/x-www-form-urlencoded; charset=UTF-8',
-                    'Origin' => $this->baseUrl,
-                    'Referer' => $this->baseUrl.'/simulacao/nova',
-                    'X-Requested-With' => 'XMLHttpRequest',
-                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
-                ])
-                ->post($this->baseUrl.'/simulacao/planos', $formData);
-
-            $body = $response->body();
-        }
-
-        if (! $response->successful()) {
-            throw new \Exception('Erro ao buscar planos: Status '.$response->status().' - Body: '.substr($body, 0, 200));
-        }
-
-        return $body;
-    }
-
-    /**
-     * Extrai token CSRF da página de simulação
-     */
-    protected function extractCsrfTokenFromSimulacao(string $html): ?string
-    {
-        // Procura pelo padrão: name="simulacao[_token]" value="..."
-        if (preg_match('/name="simulacao\[_token\]"\s+value="([^"]+)"/', $html, $matches)) {
-            return $matches[1];
-        }
-
-        return null;
     }
 }
