@@ -125,9 +125,7 @@ class SimuladorOnlineService
 
         $plans = $this->parsePlansFromHtml($html);
 
-        $filteredPlans = $this->applyFilters($plans);
-
-        return $filteredPlans;
+        return $this->applyFilters($plans, $validatedInput);
     }
 
     /**
@@ -330,23 +328,51 @@ class SimuladorOnlineService
     }
 
     /**
-     * Filtra a lista de planos para retornar apenas operadoras únicas.
+     * Filtra: plano com +[IDADE] em nome/operadora/descrição só entra se houver vida na faixa dessa idade; mantém operadoras únicas.
      *
      * @param  array<int, array<string, mixed>>  $plans
+     * @param  array{profile: string, lives: array<string, int>}  $input
      * @return array<int, array<string, mixed>>
      */
-    protected function applyFilters(array $plans): array
+    protected function applyFilters(array $plans, array $input = []): array
     {
+        $lives = $input['lives'] ?? [];
+
+        $plans = array_filter($plans, function (array $plan) use ($lives): bool {
+            $text = ($plan['nome'] ?? '').' '.($plan['operadora'] ?? '').' '.($plan['operadora_descricao'] ?? '');
+            $minAge = null;
+            if (str_contains($text, '50+') || str_contains($text, '+50')) {
+                $minAge = 50;
+            } elseif (str_contains($text, '59+') || str_contains($text, '+59')) {
+                $minAge = 59;
+            }
+            if ($minAge !== null) {
+                $hasVidaNaFaixa = false;
+                foreach (self::AgeBracketKeys as $key) {
+                    if ((int) ($lives[$key] ?? 0) <= 0) {
+                        continue;
+                    }
+                    $bracketMaxAge = $key === '59+' ? 999 : (int) explode('-', $key)[1];
+                    if ($bracketMaxAge >= $minAge) {
+                        $hasVidaNaFaixa = true;
+                        break;
+                    }
+                }
+                if (! $hasVidaNaFaixa) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+
         $uniqueOperators = [];
         $seenOperators = [];
-
         foreach ($plans as $plan) {
             $operatorName = $plan['operadora'] ?? '';
-
             if ($operatorName === '') {
                 continue;
             }
-
             if (! isset($seenOperators[$operatorName])) {
                 $seenOperators[$operatorName] = true;
                 $uniqueOperators[] = $plan;
