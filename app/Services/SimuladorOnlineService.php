@@ -6,7 +6,6 @@ use DOMDocument;
 use DOMXPath;
 use GuzzleHttp\Cookie\CookieJar;
 use Illuminate\Http\Client\PendingRequest;
-use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 
 class SimuladorOnlineService
@@ -38,33 +37,31 @@ class SimuladorOnlineService
     }
 
     /**
-     * Search hospitals for autocomplete (Step 1). Returns formatted data plus meta for optional debug.
-     *
      * @return array{hospitais: array<int, array{id: int|null, nome: string}>, query: string, region: int, raw: array}
      */
     public function searchHospitalsForAutocomplete(string $query, ?int $regionId = null): array
     {
         $regionId = $regionId ?? self::DefaultRegionId;
-        $raw = $this->fetchHospitalsFromApi($regionId, $query);
-        $hospitais = $this->formatHospitalsForAutocomplete($raw);
 
-        return [
-            'hospitais' => $hospitais,
-            'query' => $query,
-            'region' => $regionId,
-            'raw' => $raw,
-        ];
-    }
+        $response = $this->client()
+            ->withHeaders([
+                'Accept' => 'application/json, text/javascript, */*; q=0.01',
+                'Referer' => $this->baseUrl.'/comparativo/',
+                'X-Requested-With' => 'XMLHttpRequest',
+            ])
+            ->get($this->baseUrl.'/ope/adm/credenciados/1.json', ['regiao' => $regionId, 'q' => $query]);
 
-    protected function fetchHospitalsFromApi(int $regionId, string $query): array
-    {
-        $response = $this->performHospitalsRequest($regionId, $query);
         $body = $response->body();
-
-        $validJson = $response->successful() && $body !== '' && (str_starts_with(trim($body), '[') || str_starts_with(trim($body), '{'));
-        if (! $validJson) {
+        $isValidJson = $response->successful() && $body !== '' && (str_starts_with(trim($body), '[') || str_starts_with(trim($body), '{'));
+        if (! $isValidJson) {
             $this->login();
-            $response = $this->performHospitalsRequest($regionId, $query);
+            $response = $this->client()
+                ->withHeaders([
+                    'Accept' => 'application/json, text/javascript, */*; q=0.01',
+                    'Referer' => $this->baseUrl.'/comparativo/',
+                    'X-Requested-With' => 'XMLHttpRequest',
+                ])
+                ->get($this->baseUrl.'/ope/adm/credenciados/1.json', ['regiao' => $regionId, 'q' => $query]);
             $body = $response->body();
         }
 
@@ -77,72 +74,43 @@ class SimuladorOnlineService
             throw new \Exception('Resposta não é JSON válido. Body: '.substr($body, 0, 500));
         }
 
-        if (! is_array($decoded)) {
-            return [];
+        $rawList = [];
+        if (is_array($decoded)) {
+            if (isset($decoded[0])) {
+                $rawList = $decoded;
+            } else {
+                $extracted = $decoded['data'] ?? $decoded['results'] ?? $decoded['hospitais'] ?? $decoded['items'] ?? $decoded;
+                $rawList = is_array($extracted) ? $extracted : [];
+            }
         }
-        if (empty($decoded)) {
-            return [];
-        }
-        if (isset($decoded[0])) {
-            return $decoded;
-        }
-        $extracted = $decoded['data'] ?? $decoded['results'] ?? $decoded['hospitais'] ?? $decoded['items'] ?? $decoded;
 
-        return is_array($extracted) ? $extracted : [];
-    }
+        $hospitais = array_map(fn (array $item): array => [
+            'id' => $item['id'] ?? null,
+            'nome' => $item['nome'] ?? $item['name'] ?? '',
+        ], $rawList);
 
-    protected function performHospitalsRequest(int $regionId, string $query): Response
-    {
-        $headers = [
-            'Accept' => 'application/json, text/javascript, */*; q=0.01',
-            'Accept-Language' => 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
-            'Referer' => $this->baseUrl.'/comparativo/',
-            'X-Requested-With' => 'XMLHttpRequest',
-            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
+        return [
+            'hospitais' => array_values($hospitais),
+            'query' => $query,
+            'region' => $regionId,
+            'raw' => $rawList,
         ];
-
-        /** @var Response $response */
-        $response = $this->client()
-            ->withHeaders($headers)
-            ->get($this->baseUrl.'/ope/adm/credenciados/1.json', [
-                'regiao' => $regionId,
-                'q' => $query,
-            ]);
-
-        return $response;
     }
 
     /**
-     * Search health plans (Step 4). Builds payload, fetches HTML, parses and returns structured data.
-     *
-     * @param  array{profile: string, lives: array<string, int>, hospital?: string, hospitalId?: int}  $validatedInput
+     * @param  array{profile: string, lives: array<string, int>, hospitalId?: int}  $validatedInput
      * @return array<int, array<string, mixed>>
      */
     public function searchPlans(array $validatedInput): array
     {
-        $payload = $this->buildSimulationPayload($validatedInput);
-        $html = $this->fetchPlansHtml($payload);
-
-        $plans = $this->parsePlansFromHtml($html);
-
-        return $this->applyFilters($plans, $validatedInput);
-    }
-
-    /**
-     * @param  array{profile: string, lives: array<string, int>, hospitalId?: int}  $input
-     * @return array{tipoTabela: int, totalVidas: int, regiao: int, faixas: array<int, array{vidas: int}>, info?: array<int, int>}
-     */
-    protected function buildSimulationPayload(array $input): array
-    {
-        $profile = $input['profile'] ?? 'cpf';
-        $tableType = match ($profile) {
+        $profile = $validatedInput['profile'] ?? 'cpf';
+        $tipoTabela = match ($profile) {
             'pme' => 3,
             'adesao' => 4,
-            'cpf' => 2,
             default => 2,
         };
 
-        $lives = $input['lives'] ?? [];
+        $lives = $validatedInput['lives'] ?? [];
         $faixas = [];
         $totalVidas = 0;
         foreach (self::AgeBracketKeys as $index => $key) {
@@ -152,213 +120,169 @@ class SimuladorOnlineService
         }
 
         $payload = [
-            'tipoTabela' => $tableType,
+            'tipoTabela' => $tipoTabela,
             'totalVidas' => $totalVidas,
             'regiao' => self::DefaultRegionId,
             'faixas' => $faixas,
         ];
-
-        $hospitalId = $input['hospitalId'] ?? null;
+        $hospitalId = $validatedInput['hospitalId'] ?? null;
         if ($hospitalId !== null && $hospitalId !== '') {
             $payload['info'] = [(int) $hospitalId];
         }
 
-        return $payload;
-    }
-
-    /**
-     * @param  array{tipoTabela: int, totalVidas: int, regiao: int, faixas: array, info?: array<int, int>}  $payload
-     */
-    protected function fetchPlansHtml(array $payload): string
-    {
-        $formData = $this->buildPlansFormData($payload);
-        $response = $this->performPlansRequest($formData);
-        $body = $response->body();
-
-        $hasPlansTable = str_contains($body, 'sim-op-planos') || str_contains($body, '<table');
-        if (! $response->successful() || ! $hasPlansTable) {
-            $this->login();
-            $formData = $this->buildPlansFormData($payload);
-            $response = $this->performPlansRequest($formData);
-            $body = $response->body();
-        }
-
-        if (! $response->successful()) {
-            throw new \Exception('Erro ao buscar planos: Status '.$response->status().' - Body: '.substr($body, 0, 200));
-        }
-
-        return $body;
-    }
-
-    /**
-     * @param  array{tipoTabela: int, totalVidas: int, regiao: int, faixas: array, info?: array<int, int>}  $payload
-     * @return array<string, mixed>
-     */
-    protected function buildPlansFormData(array $payload): array
-    {
-        $form = [
+        $formData = [
             'simulacao[destNome]' => '',
             'simulacao[destContato]' => '',
             'simulacao[destEmail]' => '',
-            'simulacao[tipoTabela]' => $payload['tipoTabela'] ?? 2,
+            'simulacao[tipoTabela]' => $payload['tipoTabela'],
             'simulacao[tipoPlano]' => 1,
             'simulacao[acomodacao]' => '',
-            'simulacao[totalVidas]' => $payload['totalVidas'] ?? 0,
+            'simulacao[totalVidas]' => $payload['totalVidas'],
             'simulacao[filtros][abrangencia]' => '',
             'simulacao[filtros][tipoOperadora]' => '',
             'simulacao[filtros][segmento]' => '',
             'simulacao[filtros][fatormoder]' => '',
-            'simulacao[regiao]' => $payload['regiao'] ?? 2,
+            'simulacao[regiao]' => $payload['regiao'],
             'simulacao[corretorEmail]' => '',
             'simulacao[textoInicial]' => 'Primeiramente, agradecemos pelo seu contato.\r\nInformamos que os custos e as condições abaixo são determinadas por suas respectivas operadoras.\r\n',
         ];
-
-        $form['simulacao[info][0]'] = 1;
-        $form['simulacao[info][1]'] = 2;
-        $form['simulacao[info][2]'] = 3;
-        $form['simulacao[info][3]'] = 4;
-        $form['simulacao[info][4]'] = 5;
+        $formData['simulacao[info][0]'] = 1;
+        $formData['simulacao[info][1]'] = 2;
+        $formData['simulacao[info][2]'] = 3;
+        $formData['simulacao[info][3]'] = 4;
+        $formData['simulacao[info][4]'] = 5;
         if (isset($payload['info']) && is_array($payload['info'])) {
             foreach ($payload['info'] as $i => $id) {
-                $form['simulacao[info]['.(5 + $i).']'] = $id;
+                $formData['simulacao[info]['.(5 + $i).']'] = $id;
             }
         }
-
-        if (isset($payload['faixas']) && is_array($payload['faixas'])) {
-            foreach ($payload['faixas'] as $index => $faixa) {
-                $form["simulacao[faixas][{$index}][vidas]"] = $faixa['vidas'] ?? 0;
-            }
+        foreach ($payload['faixas'] as $index => $faixa) {
+            $formData["simulacao[faixas][{$index}][vidas]"] = $faixa['vidas'] ?? 0;
         }
 
-        if (isset($payload['adesao']) && is_array($payload['adesao'])) {
-            $a = $payload['adesao'];
-            $form['simulacao[adesao][opes]'] = $a['opes'] ?? '';
-            $form['simulacao[adesao][administradora]'] = $a['administradora'] ?? '';
-            $form['simulacao[adesao][entidade]'] = $a['entidade'] ?? '';
-            $form['simulacao[adesao][profissao]'] = $a['profissao'] ?? '';
+        $novaPageHtml = $this->client()->get($this->baseUrl.'/simulacao/nova')->body();
+        if (preg_match('/name="simulacao\[_token\]"\s+value="([^"]+)"/', $novaPageHtml, $matches)) {
+            $formData['simulacao[_token]'] = $matches[1];
         }
 
-        $pageHtml = $this->client()->get($this->baseUrl.'/simulacao/nova')->body();
-        if (preg_match('/name="simulacao\[_token\]"\s+value="([^"]+)"/', $pageHtml, $matches)) {
-            $form['simulacao[_token]'] = $matches[1];
-        }
-
-        return $form;
-    }
-
-    /**
-     * @param  array<string, mixed>  $formData
-     */
-    protected function performPlansRequest(array $formData): Response
-    {
-        $headers = [
-            'Accept' => '*/*',
-            'Accept-Language' => 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
-            'Content-Type' => 'application/x-www-form-urlencoded; charset=UTF-8',
-            'Origin' => $this->baseUrl,
-            'Referer' => $this->baseUrl.'/simulacao/nova',
-            'X-Requested-With' => 'XMLHttpRequest',
-            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
-        ];
-
-        /** @var Response $response */
         $response = $this->client()
             ->asForm()
-            ->withHeaders($headers)
+            ->withHeaders([
+                'Content-Type' => 'application/x-www-form-urlencoded; charset=UTF-8',
+                'Origin' => $this->baseUrl,
+                'Referer' => $this->baseUrl.'/simulacao/nova',
+                'X-Requested-With' => 'XMLHttpRequest',
+            ])
             ->post($this->baseUrl.'/simulacao/planos', $formData);
 
-        return $response;
+        $planosHtml = $response->body();
+        $respostaInvalida = ! $response->successful() || (! str_contains($planosHtml, 'sim-op-planos') && ! str_contains($planosHtml, '<table'));
+        if ($respostaInvalida) {
+            $this->login();
+            if (preg_match('/name="simulacao\[_token\]"\s+value="([^"]+)"/', $this->client()->get($this->baseUrl.'/simulacao/nova')->body(), $m)) {
+                $formData['simulacao[_token]'] = $m[1];
+            }
+            $response = $this->client()
+                ->asForm()
+                ->withHeaders([
+                    'Content-Type' => 'application/x-www-form-urlencoded; charset=UTF-8',
+                    'Origin' => $this->baseUrl,
+                    'Referer' => $this->baseUrl.'/simulacao/nova',
+                    'X-Requested-With' => 'XMLHttpRequest',
+                ])
+                ->post($this->baseUrl.'/simulacao/planos', $formData);
+            $planosHtml = $response->body();
+        }
+
+        if (! $response->successful()) {
+            throw new \Exception('Erro ao buscar planos: Status '.$response->status().' - Body: '.substr($planosHtml, 0, 200));
+        }
+
+        $planosParsed = $this->parsePlanosTableHtml($planosHtml);
+        $planosFiltrados = $this->filtrarPlanosPorFaixaEtariaEUnicoPorOperadora($planosParsed, $lives);
+
+        return array_values($planosFiltrados);
     }
 
     /**
-     * Parse plans table HTML and return structured plan data.
+     * Extrai lista de planos da tabela HTML (tr.sim-op-planos). Ignora acomodação AMB.
      *
-     * @return array<int, array{id: int, operadora: string, operadora_logo: string|null, operadora_descricao: string, nome: string, acomodacao: string, acomodacao_sigla: string, vigencia: string}>
+     * @return array<int, array<string, mixed>>
      */
-    protected function parsePlansFromHtml(string $html): array
+    protected function parsePlanosTableHtml(string $html): array
     {
-        $plans = [];
+        $planos = [];
         $dom = new DOMDocument;
-
         libxml_use_internal_errors(true);
         $dom->loadHTML('<?xml encoding="UTF-8">'.$html);
         libxml_clear_errors();
-
         $xpath = new DOMXPath($dom);
-        $operatorRows = $xpath->query('//tr[@class="sim-op-planos"]');
 
-        foreach ($operatorRows as $row) {
-            $pNode = $xpath->query('.//p', $row)->item(0);
-            $operatorName = $pNode ? trim($pNode->textContent) : '';
-            $imgNode = $xpath->query('.//img', $row)->item(0);
-            $operatorLogo = $imgNode instanceof \DOMElement ? $imgNode->getAttribute('src') : null;
-            $descNode = $xpath->query('.//b[@class="fz-7"]', $row)->item(0);
-            $operatorDesc = $descNode ? trim($descNode->textContent) : '';
-            $planItems = $xpath->query('.//ul[@class="collapser smallest planos ta-l"]/li', $row);
+        foreach ($xpath->query('//tr[@class="sim-op-planos"]') as $row) {
+            $operadoraNome = trim($xpath->query('.//p', $row)->item(0)?->textContent ?? '');
+            $operadoraLogo = null;
+            $img = $xpath->query('.//img', $row)->item(0);
+            if ($img instanceof \DOMElement) {
+                $operadoraLogo = $img->getAttribute('src');
+            }
+            $operadoraDesc = trim($xpath->query('.//b[@class="fz-7"]', $row)->item(0)?->textContent ?? '');
 
-            /** @var \DOMElement $planLi */
-            foreach ($planItems as $planLi) {
-                $tipsyNode = $xpath->query('.//span[@class="tipsy"]', $planLi)->item(0);
-                $accommodation = $tipsyNode ? trim($tipsyNode->textContent) : '';
-
-                if ($accommodation === 'AMB') {
+            foreach ($xpath->query('.//ul[@class="collapser smallest planos ta-l"]/li', $row) as $planLi) {
+                $acomodacaoSigla = trim($xpath->query('.//span[@class="tipsy"]', $planLi)->item(0)?->textContent ?? '');
+                if ($acomodacaoSigla === 'AMB') {
                     continue;
                 }
-
-                $accommodationLabel = match ($accommodation) {
+                $acomodacaoLabel = match ($acomodacaoSigla) {
                     'E' => 'Enfermaria',
                     'A' => 'Apartamento',
-                    default => $accommodation,
+                    default => $acomodacaoSigla,
                 };
-                $nomeNode = $xpath->query('.//i', $planLi)->item(0);
-                $plans[] = [
+                $planos[] = [
                     'id' => (int) $planLi->getAttribute('data-id'),
-                    'operadora' => $operatorName,
-                    'operadora_logo' => $operatorLogo,
-                    'operadora_descricao' => $operatorDesc,
-                    'nome' => $nomeNode ? trim($nomeNode->textContent) : '',
-                    'acomodacao' => $accommodationLabel,
-                    'acomodacao_sigla' => $accommodation,
+                    'operadora' => $operadoraNome,
+                    'operadora_logo' => $operadoraLogo,
+                    'operadora_descricao' => $operadoraDesc,
+                    'nome' => trim($xpath->query('.//i', $planLi)->item(0)?->textContent ?? ''),
+                    'acomodacao' => $acomodacaoLabel,
+                    'acomodacao_sigla' => $acomodacaoSigla,
                     'vigencia' => $planLi->getAttribute('data-vi'),
                 ];
             }
         }
 
-        return $plans;
+        return $planos;
     }
 
     /**
-     * Filtra: plano com +[IDADE] em nome/operadora/descrição só entra se houver vida na faixa dessa idade; mantém operadoras únicas.
+     * Remove planos 50+/59+ quando não há vida na faixa; mantém um plano por operadora.
      *
-     * @param  array<int, array<string, mixed>>  $plans
-     * @param  array{profile: string, lives: array<string, int>}  $input
+     * @param  array<int, array<string, mixed>>  $planos
+     * @param  array<string, int>  $lives
      * @return array<int, array<string, mixed>>
      */
-    protected function applyFilters(array $plans, array $input = []): array
+    protected function filtrarPlanosPorFaixaEtariaEUnicoPorOperadora(array $planos, array $lives): array
     {
-        $lives = $input['lives'] ?? [];
-
-        $plans = array_filter($plans, function (array $plan) use ($lives): bool {
-            $text = ($plan['nome'] ?? '').' '.($plan['operadora'] ?? '').' '.($plan['operadora_descricao'] ?? '');
-            $minAge = null;
-            if (str_contains($text, '50+') || str_contains($text, '+50')) {
-                $minAge = 50;
-            } elseif (str_contains($text, '59+') || str_contains($text, '+59')) {
-                $minAge = 59;
+        $planos = array_filter($planos, function (array $plan) use ($lives): bool {
+            $texto = ($plan['nome'] ?? '').' '.($plan['operadora'] ?? '').' '.($plan['operadora_descricao'] ?? '');
+            $idadeMinima = null;
+            if (str_contains($texto, '50+') || str_contains($texto, '+50')) {
+                $idadeMinima = 50;
+            } elseif (str_contains($texto, '59+') || str_contains($texto, '+59')) {
+                $idadeMinima = 59;
             }
-            if ($minAge !== null) {
-                $hasVidaNaFaixa = false;
+            if ($idadeMinima !== null) {
+                $temVidaNaFaixa = false;
                 foreach (self::AgeBracketKeys as $key) {
                     if ((int) ($lives[$key] ?? 0) <= 0) {
                         continue;
                     }
-                    $bracketMaxAge = $key === '59+' ? 999 : (int) explode('-', $key)[1];
-                    if ($bracketMaxAge >= $minAge) {
-                        $hasVidaNaFaixa = true;
+                    $maxIdadeFaixa = $key === '59+' ? 999 : (int) explode('-', $key)[1];
+                    if ($maxIdadeFaixa >= $idadeMinima) {
+                        $temVidaNaFaixa = true;
                         break;
                     }
                 }
-                if (! $hasVidaNaFaixa) {
+                if (! $temVidaNaFaixa) {
                     return false;
                 }
             }
@@ -366,29 +290,25 @@ class SimuladorOnlineService
             return true;
         });
 
-        $uniqueOperators = [];
-        $seenOperators = [];
-        foreach ($plans as $plan) {
-            $operatorName = $plan['operadora'] ?? '';
-            if ($operatorName === '') {
+        $vistos = [];
+        $umPorOperadora = [];
+        foreach ($planos as $plan) {
+            $op = $plan['operadora'] ?? '';
+            if ($op === '' || isset($vistos[$op])) {
                 continue;
             }
-            if (! isset($seenOperators[$operatorName])) {
-                $seenOperators[$operatorName] = true;
-                $uniqueOperators[] = $plan;
-            }
+            $vistos[$op] = true;
+            $umPorOperadora[] = $plan;
         }
 
-        return array_values($uniqueOperators);
+        return $umPorOperadora;
     }
 
     protected function client(): PendingRequest
     {
-        $verifySsl = config('services.simulador_online.verify_ssl', false);
-
         return Http::withOptions([
             'cookies' => $this->cookieJar,
-            'verify' => $verifySsl,
+            'verify' => config('services.simulador_online.verify_ssl', false),
             'timeout' => 30,
         ])->withHeaders([
             'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -410,7 +330,6 @@ class SimuladorOnlineService
         if (preg_match('/name="login\[_token\]"\s+value="([^"]+)"/', $loginPageHtml, $matches)) {
             $csrfToken = $matches[1];
         }
-
         if (! $csrfToken) {
             throw new \Exception('Não foi possível extrair o token CSRF da página de login');
         }
@@ -421,26 +340,19 @@ class SimuladorOnlineService
             'login[_token]' => $csrfToken,
         ]);
 
-        $success = $response->successful() || $response->redirect();
-        $cookieJar = $response->cookies();
         $cookiesArray = [];
-        $sessionId = null;
-
-        foreach ($cookieJar as $cookie) {
+        foreach ($response->cookies() as $cookie) {
             $cookiesArray[$cookie->getName()] = $cookie->getValue();
-            if ($cookie->getName() === 'PHPSESSID') {
-                $sessionId = $cookie->getValue();
-            }
         }
 
         return [
-            'success' => $success,
+            'success' => $response->successful() || $response->redirect(),
             'status' => $response->status(),
             'body' => $response->body(),
             'cookies' => $cookiesArray,
             'headers' => $response->headers(),
             'csrf_token' => $csrfToken,
-            'session_token' => $sessionId,
+            'session_token' => $cookiesArray['PHPSESSID'] ?? null,
         ];
     }
 
@@ -448,7 +360,7 @@ class SimuladorOnlineService
     {
         try {
             $response = $this->client()->get($this->baseUrl.'/ope/adm/credenciados/1.json', [
-                'regiao' => 2,
+                'regiao' => self::DefaultRegionId,
                 'q' => 'test',
             ]);
 
