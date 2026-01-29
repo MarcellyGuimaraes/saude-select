@@ -56,56 +56,6 @@ class SimuladorOnlineService
         ];
     }
 
-    /**
-     * Search health plans (Step 4). Builds payload, fetches HTML, parses and returns structured data.
-     *
-     * @param  array{profile: string, lives: array<string, int>, hospital?: string, hospitalId?: int}  $validatedInput
-     * @return array<int, array<string, mixed>>
-     */
-    public function searchPlans(array $validatedInput): array
-    {
-        $payload = $this->buildSimulationPayload($validatedInput);
-        $html = $this->fetchPlansHtml($payload);
-
-        return $this->parsePlansFromHtml($html);
-    }
-
-    /**
-     * @return array<int, array{id: int|null, nome: string}>
-     */
-    protected function formatHospitalsForAutocomplete(array $raw): array
-    {
-        $formatted = [];
-
-        if (! is_array($raw)) {
-            return $formatted;
-        }
-
-        foreach ($raw as $item) {
-            if (is_array($item)) {
-                $name = $item['full_descricao'] ?? null;
-                if (empty($name)) {
-                    foreach ($item as $key => $value) {
-                        if (is_string($value) && ! is_numeric($key)) {
-                            $name = $value;
-                            break;
-                        }
-                    }
-                }
-                if ($name) {
-                    $formatted[] = [
-                        'id' => $item['id'] ?? $item['codigo'] ?? null,
-                        'nome' => $name,
-                    ];
-                }
-            } elseif (is_string($item)) {
-                $formatted[] = ['id' => null, 'nome' => $item];
-            }
-        }
-
-        return $formatted;
-    }
-
     protected function fetchHospitalsFromApi(int $regionId, string $query): array
     {
         $response = $this->performHospitalsRequest($regionId, $query);
@@ -160,6 +110,24 @@ class SimuladorOnlineService
             ]);
 
         return $response;
+    }
+
+    /**
+     * Search health plans (Step 4). Builds payload, fetches HTML, parses and returns structured data.
+     *
+     * @param  array{profile: string, lives: array<string, int>, hospital?: string, hospitalId?: int}  $validatedInput
+     * @return array<int, array<string, mixed>>
+     */
+    public function searchPlans(array $validatedInput): array
+    {
+        $payload = $this->buildSimulationPayload($validatedInput);
+        $html = $this->fetchPlansHtml($payload);
+
+        $plans = $this->parsePlansFromHtml($html);
+
+        $filteredPlans = $this->applyFilters($plans);
+
+        return $filteredPlans;
     }
 
     /**
@@ -359,6 +327,33 @@ class SimuladorOnlineService
         }
 
         return $plans;
+    }
+
+    /**
+     * Filtra a lista de planos para retornar apenas operadoras únicas.
+     *
+     * @param  array<int, array<string, mixed>>  $plans
+     * @return array<int, array<string, mixed>>
+     */
+    protected function applyFilters(array $plans): array
+    {
+        $uniqueOperators = [];
+        $seenOperators = [];
+
+        foreach ($plans as $plan) {
+            $operatorName = $plan['operadora'] ?? '';
+
+            if ($operatorName === '') {
+                continue;
+            }
+
+            if (! isset($seenOperators[$operatorName])) {
+                $seenOperators[$operatorName] = true;
+                $uniqueOperators[] = $plan;
+            }
+        }
+
+        return array_values($uniqueOperators);
     }
 
     protected function client(): PendingRequest
