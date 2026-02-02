@@ -369,4 +369,181 @@ class SimuladorOnlineService
             return false;
         }
     }
+
+    /**
+     * POST em /simulacao/nova conforme o curl fornecido.
+     * Retorna o HTML da resposta.
+     */
+    public function getAdesaoRawHtml(): string
+    {
+        $this->login();
+
+        $novaPageHtml = $this->client()->get($this->baseUrl.'/simulacao/nova')->body();
+        $csrfToken = null;
+        if (preg_match('/name="simulacao\[_token\]"\s+value="([^"]+)"/', $novaPageHtml, $matches)) {
+            $csrfToken = $matches[1];
+        }
+
+        $corretorEmail = config('services.simulador_online.corretor_email', '');
+        $textoInicial = "Primeiramente, agradecemos pelo seu contato.\r\nInformamos que os custos e as condições abaixo são determinadas por suas respectivas operadoras.\r\n";
+
+        // Monta o body exatamente como no curl (simulacao[info][], simulacao[tabelas][] com chave repetida)
+        $params = [
+            'simulacao[destNome]' => '',
+            'simulacao[destContato]' => '',
+            'simulacao[destEmail]' => '',
+            'simulacao[tipoTabela]' => '2',
+            'simulacao[tipoPlano]' => '1',
+            'simulacao[acomodacao]' => '',
+            'simulacao[totalVidas]' => '2',
+            'simulacao[filtros][abrangencia]' => '',
+            'simulacao[filtros][tipoOperadora]' => '',
+            'simulacao[filtros][segmento]' => '',
+            'simulacao[filtros][fatormoder]' => '',
+        ];
+        $bodyParts = [];
+        foreach ($params as $k => $v) {
+            $bodyParts[] = rawurlencode($k).'='.rawurlencode($v);
+        }
+        foreach ([1, 2, 3, 4, 5] as $v) {
+            $bodyParts[] = rawurlencode('simulacao[info][]').'='.$v;
+        }
+        $faixasVidas = [0, 0, 0, 2, 0, 0, 0, 0, 0, 0];
+        foreach ($faixasVidas as $i => $vidas) {
+            $bodyParts[] = rawurlencode("simulacao[faixas][{$i}][vidas]").'='.$vidas;
+        }
+        foreach ([408270, 420159, 384619] as $id) {
+            $bodyParts[] = rawurlencode('simulacao[tabelas][]').'='.$id;
+        }
+        $bodyParts[] = rawurlencode('simulacao[textoInicial]').'='.rawurlencode($textoInicial);
+        $bodyParts[] = rawurlencode('simulacao[regiao]').'=2';
+        $bodyParts[] = rawurlencode('simulacao[corretorEmail]').'='.rawurlencode($corretorEmail);
+        $bodyParts[] = rawurlencode('simulacao[adesao][opes]').'=';
+        $bodyParts[] = rawurlencode('simulacao[adesao][administradora]').'=';
+        $bodyParts[] = rawurlencode('simulacao[adesao][entidade]').'=';
+        $bodyParts[] = rawurlencode('simulacao[adesao][profissao]').'=';
+        if ($csrfToken) {
+            $bodyParts[] = rawurlencode('simulacao[_token]').'='.rawurlencode($csrfToken);
+        }
+        $bodyString = implode('&', $bodyParts);
+
+        $postUrl = $this->baseUrl.'/simulacao/nova?'.time();
+        $response = $this->client()
+            ->withHeaders([
+                'Content-Type' => 'application/x-www-form-urlencoded',
+                'Origin' => $this->baseUrl,
+                'Referer' => $this->baseUrl.'/simulacao/nova',
+            ])
+            ->withBody($bodyString, 'application/x-www-form-urlencoded')
+            ->post($postUrl);
+
+        $body = $response->body();
+        if (! $response->successful()) {
+            throw new \Exception('Erro ao buscar simulação: Status '.$response->status().' - POST URL: '.$postUrl.' - Body: '.substr($body, 0, 200));
+        }
+
+        return $body;
+    }
+
+    /**
+     * Extrai apenas a parte útil da proposta (conteúdo de div.simulacao.printable),
+     * removendo logo do simulador, top-actions, scripts, estilos e base.
+     */
+    public static function extractProposalContent(string $fullHtml, string $baseUrl = 'https://app.simuladoronline.com'): string
+    {
+        $dom = new DOMDocument;
+        libxml_use_internal_errors(true);
+        $dom->loadHTML('<?xml encoding="UTF-8">'.$fullHtml);
+        libxml_clear_errors();
+        $xpath = new DOMXPath($dom);
+
+        $printable = $xpath->query('//div[contains(@class,"simulacao") and contains(@class,"printable")]');
+        if ($printable->length === 0) {
+            $printable = $xpath->query('//section');
+        }
+        if ($printable->length === 0) {
+            return $fullHtml;
+        }
+
+        $container = $printable->item(0);
+        $innerHtml = '';
+        $removedFirstLogotipo = false;
+
+        foreach ($container->childNodes as $child) {
+            if ($child->nodeType !== XML_ELEMENT_NODE) {
+                $innerHtml .= $dom->saveHTML($child);
+
+                continue;
+            }
+            $tag = strtolower($child->nodeName);
+            $class = $child->getAttribute('class');
+            // Remove apenas o primeiro div.logotipo (logo do simulador/corretor no topo; o PDF usa nossa marca)
+            if (! $removedFirstLogotipo && $tag === 'div' && str_contains($class, 'logotipo')) {
+                $removedFirstLogotipo = true;
+
+                continue;
+            }
+            // Remove top-actions (Voltar, Imprimir, E-mail, WhatsApp) se vier dentro do printable
+            if ($tag === 'div' && str_contains($class, 'top-actions')) {
+                continue;
+            }
+            $innerHtml .= $dom->saveHTML($child);
+        }
+
+        $innerHtml = self::stripUselessTags($innerHtml);
+
+        return preg_replace_callback('/\b(src|href)=["\']([^"\']+)["\']/', function ($m) use ($baseUrl) {
+            $url = $m[2];
+            if (str_starts_with($url, 'http')) {
+                return $m[0];
+            }
+            $url = ltrim($url, '/');
+
+            return $m[1].'="'.rtrim($baseUrl, '/').'/'.$url.'"';
+        }, $innerHtml);
+    }
+
+    /**
+     * Substitui imagens do simulador (mesmo domínio que $baseUrl) por data URIs,
+     * usando o cliente autenticado (cookies), para o PDF exibir as logos sem requisições remotas.
+     */
+    public function embedSimuladorImagesInHtml(string $html, string $baseUrl): string
+    {
+        $baseUrl = rtrim($baseUrl, '/');
+        $pattern = '/\bsrc=(["\'])('.preg_quote($baseUrl, '/').'\/[^"\']+)\1/';
+
+        return preg_replace_callback($pattern, function (array $m) {
+            $url = $m[2];
+            try {
+                $response = $this->client()->get($url);
+                if (! $response->successful()) {
+                    return $m[0];
+                }
+                $body = $response->body();
+                $contentType = $response->header('Content-Type') ?? '';
+                $mediaType = 'image/png';
+                if (preg_match('/^image\/(\w+)/i', $contentType, $ct)) {
+                    $mediaType = 'image/'.strtolower($ct[1]);
+                }
+                $b64 = base64_encode($body);
+
+                return 'src="data:'.$mediaType.';base64,'.$b64.'"';
+            } catch (\Throwable) {
+                return $m[0];
+            }
+        }, $html);
+    }
+
+    /**
+     * Remove do HTML tags que não devem ir para o PDF (script, style, link, base).
+     */
+    protected static function stripUselessTags(string $html): string
+    {
+        $html = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $html);
+        $html = preg_replace('/<style\b[^>]*>.*?<\/style>/is', '', $html);
+        $html = preg_replace('/<link\b[^>]*>/i', '', $html);
+        $html = preg_replace('/<base\b[^>]*>/i', '', $html);
+
+        return $html;
+    }
 }
