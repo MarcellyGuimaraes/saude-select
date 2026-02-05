@@ -48,23 +48,40 @@ Route::get('/test/simulador-adesao', function () {
 
 Route::get('/test/simulador-adesao/pdf', function () {
     try {
-        $baseUrl = config('services.simulador_online.base_url', 'https://app.simuladoronline.com');
         $service = app(SimuladorOnlineService::class);
         $rawHtml = $service->getAdesaoRawHtml();
-        $content = SimuladorOnlineService::extractProposalContent($rawHtml, $baseUrl);
-        $content = $service->embedSimuladorImagesInHtml($content, $baseUrl);
+        $content = SimuladorOnlineService::extractProposalContent(
+            $rawHtml,
+            config('services.simulador_online.base_url', 'https://app.simuladoronline.com')
+        );
 
-        $pdf = Pdf::setOption('enable_remote', true)
-            ->loadView('test.proposta-pdf', [
-                'content' => $content,
-                'titulo' => 'Proposta de Plano de Saúde (Individual)',
-            ])
-            ->setPaper('a4', 'portrait');
+        $pdf = Pdf::loadView('test.proposta-pdf', [
+            'content' => $content,
+            'titulo' => 'Proposta de Plano de Saúde (Individual)',
+        ])->setPaper('a4', 'portrait');
 
-        return $pdf->download('proposta-plano-saude.pdf');
+        return $pdf->download('proposta-plano-saude-sistema.pdf');
     } catch (\Throwable $e) {
         abort(500, $e->getMessage());
     }
 })->name('test.simulador-adesao.pdf');
+
+Route::get('/test/simulador-adesao/pdf-cliente', function () {
+    try {
+        $baseUrl = config('services.simulador_online.base_url', 'https://app.simuladoronline.com');
+        $service = app(SimuladorOnlineService::class);
+        $rawHtml = $service->getAdesaoRawHtml();
+        $content = SimuladorOnlineService::extractClientProposalContent($rawHtml, $baseUrl);
+
+        $pdf = Pdf::loadView('test.proposta-pdf', [
+            'content' => $content,
+            'titulo' => 'Plano escolhido — Preços e Rede de Atendimento',
+        ])->setPaper('a4', 'portrait');
+
+        return $pdf->download('proposta-plano-saude-cliente.pdf');
+    } catch (\Throwable $e) {
+        abort(500, $e->getMessage());
+    }
+})->name('test.simulador-adesao.pdf-cliente');
 
 require __DIR__.'/settings.php';

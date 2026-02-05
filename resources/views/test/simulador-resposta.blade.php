@@ -28,7 +28,11 @@
     @if(isset($error))
         <div class="error block">{{ $error }}</div>
     @else
-        <p class="meta"><a href="{{ route('test.simulador-adesao.pdf') }}">📄 Baixar PDF (com marca {{ config('app.name') }})</a></p>
+        <p class="meta">
+            <a href="{{ route('test.simulador-adesao.pdf') }}">📄 Baixar PDF completo (sistema)</a>
+            —
+            <a href="{{ route('test.simulador-adesao.pdf-cliente') }}">📄 Baixar PDF do cliente</a> (apenas plano/preços e Rede Credenciada por operadora)
+        </p>
         <div class="block">
             <h2>HTML renderizado (o que vem do simulador — para fins comparativos)</h2>
             <div class="resposta-renderizada">{!! $rawHtml ?? '' !!}</div>

@@ -40,17 +40,12 @@
     </style>
 </head>
 <body>
-    <div class="marca">
-        <h1>{{ config('app.name') }}</h1>
-        <div class="subtitulo">{{ $titulo ?? 'Proposta de Plano de Saúde (Individual)' }}</div>
-    </div>
-
     <div class="conteudo-proposta">
         {!! $content ?? '' !!}
     </div>
 
     <div class="rodape">
-        Documento gerado por {{ config('app.name') }} — {{ now()->format('d/m/Y H:i') }}
+        Documento gerado por Saúde Select — {{ now()->format('d/m/Y H:i') }}
     </div>
 </body>
 </html>

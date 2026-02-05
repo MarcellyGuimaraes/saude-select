@@ -37,7 +37,7 @@ class SimuladorOnlineService
     }
 
     /**
-     * @return array{hospitais: array<int, array{id: int|null, nome: string}>, query: string, region: int, raw: array}
+     * Busca hospitais para o autocomplete.
      */
     public function searchHospitalsForAutocomplete(string $query, ?int $regionId = null): array
     {
@@ -98,8 +98,7 @@ class SimuladorOnlineService
     }
 
     /**
-     * @param  array{profile: string, lives: array<string, int>, hospitalId?: int}  $validatedInput
-     * @return array<int, array<string, mixed>>
+     * Monta a simulação e retorna os planos encontrados.
      */
     public function searchPlans(array $validatedInput): array
     {
@@ -205,9 +204,7 @@ class SimuladorOnlineService
     }
 
     /**
-     * Extrai lista de planos da tabela HTML (tr.sim-op-planos). Ignora acomodação AMB.
-     *
-     * @return array<int, array<string, mixed>>
+     * Extrai lista de planos da tabela HTML (tr.sim-op-planos), ignorando acomodação AMB.
      */
     protected function parsePlanosTableHtml(string $html): array
     {
@@ -254,11 +251,7 @@ class SimuladorOnlineService
     }
 
     /**
-     * Remove planos 50+/59+ quando não há vida na faixa; mantém um plano por operadora.
-     *
-     * @param  array<int, array<string, mixed>>  $planos
-     * @param  array<string, int>  $lives
-     * @return array<int, array<string, mixed>>
+     * Remove planos 50+/59+ sem vidas na faixa e mantém um plano por operadora.
      */
     protected function filtrarPlanosPorFaixaEtariaEUnicoPorOperadora(array $planos, array $lives): array
     {
@@ -446,103 +439,298 @@ class SimuladorOnlineService
     }
 
     /**
-     * Extrai apenas a parte útil da proposta (conteúdo de div.simulacao.printable),
-     * removendo logo do simulador, top-actions, scripts, estilos e base.
+     * Limpa o HTML bruto do simulador para o formato "sistema",
+     * equivalente ao exemplo html-simulacao-sistema-v.html.
+     *
+     * Mantém a estrutura principal (#geral, seção de beneficiários, operadoras,
+     * assinaturas e rodapé), mas remove cabeçalho do sistema, menu,
+     * alertas, barra de ações e tags de script/estilo.
      */
     public static function extractProposalContent(string $fullHtml, string $baseUrl = 'https://app.simuladoronline.com'): string
     {
-        $dom = new DOMDocument;
+        $sourceDom = new DOMDocument;
         libxml_use_internal_errors(true);
-        $dom->loadHTML('<?xml encoding="UTF-8">'.$fullHtml);
+        $sourceDom->loadHTML('<?xml encoding="UTF-8">'.$fullHtml);
         libxml_clear_errors();
-        $xpath = new DOMXPath($dom);
+        $sourceXpath = new DOMXPath($sourceDom);
 
-        $printable = $xpath->query('//div[contains(@class,"simulacao") and contains(@class,"printable")]');
-        if ($printable->length === 0) {
-            $printable = $xpath->query('//section');
+        $outDom = new DOMDocument('1.0', 'UTF-8');
+        $outDom->formatOutput = false;
+
+        $htmlEl = $outDom->createElement('html');
+        $htmlEl->setAttribute('lang', 'pt-BR');
+        $outDom->appendChild($htmlEl);
+
+        $bodyEl = $outDom->createElement('body');
+        $htmlEl->appendChild($bodyEl);
+
+        /** @var \DOMElement|null $origBody */
+        $origBody = $sourceXpath->query('//body')->item(0);
+        if ($origBody instanceof \DOMElement) {
+            foreach ($origBody->attributes as $attr) {
+                $bodyEl->setAttribute($attr->nodeName, $attr->nodeValue);
+            }
         }
-        if ($printable->length === 0) {
+
+        /** @var \DOMElement|null $geral */
+        $geral = $sourceXpath->query('//*[@id="geral"]')->item(0);
+        if (! $geral instanceof \DOMElement) {
+            if ($origBody instanceof \DOMElement) {
+                foreach ($origBody->childNodes as $child) {
+                    $bodyEl->appendChild($outDom->importNode($child, true));
+                }
+
+                return $outDom->saveHTML();
+            }
+
             return $fullHtml;
         }
 
-        $container = $printable->item(0);
-        $innerHtml = '';
-        $removedFirstLogotipo = false;
+        $geralImported = $outDom->importNode($geral, true);
+        $bodyEl->appendChild($geralImported);
 
-        foreach ($container->childNodes as $child) {
-            if ($child->nodeType !== XML_ELEMENT_NODE) {
-                $innerHtml .= $dom->saveHTML($child);
+        $outXpath = new DOMXPath($outDom);
 
-                continue;
+        // Remove header, nav e alertas internos
+        foreach (['//header', '//nav', '//div[contains(@class,"alert")]'] as $query) {
+            foreach ($outXpath->query($query) as $node) {
+                $node->parentNode?->removeChild($node);
             }
-            $tag = strtolower($child->nodeName);
-            $class = $child->getAttribute('class');
-            // Remove apenas o primeiro div.logotipo (logo do simulador/corretor no topo; o PDF usa nossa marca)
-            if (! $removedFirstLogotipo && $tag === 'div' && str_contains($class, 'logotipo')) {
-                $removedFirstLogotipo = true;
-
-                continue;
-            }
-            // Remove top-actions (Voltar, Imprimir, E-mail, WhatsApp) se vier dentro do printable
-            if ($tag === 'div' && str_contains($class, 'top-actions')) {
-                continue;
-            }
-            $innerHtml .= $dom->saveHTML($child);
         }
 
-        $innerHtml = self::stripUselessTags($innerHtml);
+        // Remove barra de ações (Voltar / Imprimir / E-mail / WhatsApp)
+        foreach ($outXpath->query('//div[contains(@class,"top-actions")]') as $node) {
+            $node->parentNode?->removeChild($node);
+        }
 
-        return preg_replace_callback('/\b(src|href)=["\']([^"\']+)["\']/', function ($m) use ($baseUrl) {
-            $url = $m[2];
-            if (str_starts_with($url, 'http')) {
-                return $m[0];
+        // Ajusta logotipo principal da simulação para usar a marca Saúde Select (somente texto, sem imagem)
+        /** @var \DOMElement|null $simulacao */
+        $simulacao = $outXpath->query('//div[contains(@class,"simulacao") and contains(@class,"printable")]')->item(0);
+        if ($simulacao instanceof \DOMElement) {
+            foreach ($simulacao->childNodes as $child) {
+                if (! $child instanceof \DOMElement) {
+                    continue;
+                }
+                if (strtolower($child->tagName) === 'div' && str_contains((string) $child->getAttribute('class'), 'logotipo')) {
+                    while ($child->firstChild !== null) {
+                        $child->removeChild($child->firstChild);
+                    }
+                    $span = $outDom->createElement('span', 'Saúde Select');
+                    $span->setAttribute('style', 'font-weight: 700; font-size: 16pt; color: #1e40af;');
+                    $child->appendChild($span);
+
+                    break;
+                }
             }
-            $url = ltrim($url, '/');
+        }
 
-            return $m[1].'="'.rtrim($baseUrl, '/').'/'.$url.'"';
-        }, $innerHtml);
+        // Remove scripts/estilos que possam ter ficado dentro do #geral
+        foreach (['script', 'style', 'link', 'base'] as $tag) {
+            foreach ($outXpath->query('//'.$tag) as $node) {
+                $node->parentNode?->removeChild($node);
+            }
+        }
+
+        // Inliner de imagens para garantir exibição no PDF (evita dependência de carregamento remoto)
+        self::inlineImages($outDom, $outXpath, $baseUrl);
+
+        // Retorna apenas o conteúdo da simulação (para ser injetado em proposta-pdf.blade.php)
+        /** @var \DOMElement|null $simNode */
+        $simNode = $outXpath->query('//div[contains(@class,"simulacao") and contains(@class,"printable")]')->item(0);
+        if (! $simNode instanceof \DOMElement) {
+            /** @var \DOMElement|null $geralNode */
+            $geralNode = $outXpath->query('//*[@id="geral"]')->item(0);
+            if (! $geralNode instanceof \DOMElement) {
+                return $outDom->saveHTML();
+            }
+            $simNode = $geralNode;
+        }
+
+        $html = '';
+        foreach ($simNode->childNodes as $child) {
+            $html .= $outDom->saveHTML($child);
+        }
+
+        return self::normalizeBreaks($html);
     }
 
     /**
-     * Substitui imagens do simulador (mesmo domínio que $baseUrl) por data URIs,
-     * usando o cliente autenticado (cookies), para o PDF exibir as logos sem requisições remotas.
+     * Limpa o HTML bruto do simulador para o formato "cliente",
+     * equivalente ao exemplo html-simulacao-cliente-v.html.
+     *
+     * Mantém: cabeçalho da simulação, tabela de beneficiários,
+     * para cada operadora: logotipo, linha de vigência, primeira tabela
+     * de faixas/valores e bloco "Rede Credenciada" (com suas legendas).
      */
-    public function embedSimuladorImagesInHtml(string $html, string $baseUrl): string
+    public static function extractClientProposalContent(string $fullHtml, string $baseUrl = 'https://app.simuladoronline.com'): string
     {
-        $baseUrl = rtrim($baseUrl, '/');
-        $pattern = '/\bsrc=(["\'])('.preg_quote($baseUrl, '/').'\/[^"\']+)\1/';
+        $baseHtml = self::extractProposalContent($fullHtml, $baseUrl);
 
-        return preg_replace_callback($pattern, function (array $m) {
-            $url = $m[2];
+        $dom = new DOMDocument;
+        libxml_use_internal_errors(true);
+        $dom->loadHTML('<?xml encoding="UTF-8">'.$baseHtml);
+        libxml_clear_errors();
+        $xpath = new DOMXPath($dom);
+
+        $operadoras = $xpath->query('//div[contains(@class,"operadora")]');
+        foreach ($operadoras as $operadora) {
+            if (! $operadora instanceof \DOMElement) {
+                continue;
+            }
+
+            $tablesKept = 0;
+            $nodesToRemove = [];
+
+            foreach (iterator_to_array($operadora->childNodes) as $child) {
+                if (! $child instanceof \DOMElement) {
+                    // Mantém textos e quebras de linha
+                    continue;
+                }
+
+                $tag = strtolower($child->tagName);
+                $class = (string) $child->getAttribute('class');
+
+                $isLogotipo = $tag === 'div' && str_contains($class, 'logotipo');
+                $isDateTaC = $tag === 'div' && str_contains($class, 'ta-c');
+                $isBr = $tag === 'br';
+
+                if ($isLogotipo || $isDateTaC || $isBr) {
+                    continue;
+                }
+
+                if ($tag === 'table') {
+                    if ($tablesKept === 0) {
+                        $tablesKept++;
+
+                        continue;
+                    }
+                    $nodesToRemove[] = $child;
+
+                    continue;
+                }
+
+                $isBloco = $tag === 'div' && str_contains($class, 'bloco');
+                if ($isBloco) {
+                    /** @var \DOMElement|null $h4 */
+                    $h4 = $xpath->query('.//h4', $child)->item(0);
+                    $title = $h4 instanceof \DOMElement ? trim($h4->textContent) : '';
+                    if ($title === 'Rede Credenciada') {
+                        continue;
+                    }
+
+                    $nodesToRemove[] = $child;
+
+                    continue;
+                }
+
+                // Qualquer outro elemento direto dentro da operadora é removido
+                $nodesToRemove[] = $child;
+            }
+
+            foreach ($nodesToRemove as $node) {
+                $node->parentNode?->removeChild($node);
+            }
+        }
+
+        // Remove blocos técnicos remanescentes diretamente sob a simulação, se houver
+        foreach ($xpath->query('//div[contains(@class,"simulacao") and contains(@class,"printable")]//div[contains(@class,"bloco")]') as $bloco) {
+            if (! $bloco instanceof \DOMElement) {
+                continue;
+            }
+            /** @var \DOMElement|null $h4 */
+            $h4 = $xpath->query('.//h4', $bloco)->item(0);
+            $title = $h4 instanceof \DOMElement ? trim($h4->textContent) : '';
+            if ($title === 'Rede Credenciada') {
+                continue;
+            }
+
+            $bloco->parentNode?->removeChild($bloco);
+        }
+
+        // Garante remoção de scripts/estilos no resultado final
+        foreach (['script', 'style', 'link', 'base'] as $tag) {
+            foreach ($xpath->query('//'.$tag) as $node) {
+                $node->parentNode?->removeChild($node);
+            }
+        }
+
+        // Inliner de imagens também para a versão do cliente
+        self::inlineImages($dom, $xpath, $baseUrl);
+
+        // Retorna apenas o conteúdo da simulação para o PDF do cliente
+        /** @var \DOMElement|null $simNode */
+        $simNode = $xpath->query('//div[contains(@class,"simulacao") and contains(@class,"printable")]')->item(0);
+        if (! $simNode instanceof \DOMElement) {
+            /** @var \DOMElement|null $bodyNode */
+            $bodyNode = $xpath->query('//body')->item(0);
+            if (! $bodyNode instanceof \DOMElement) {
+                return $dom->saveHTML();
+            }
+            $simNode = $bodyNode;
+        }
+
+        $html = '';
+        foreach ($simNode->childNodes as $child) {
+            $html .= $dom->saveHTML($child);
+        }
+
+        return self::normalizeBreaks($html);
+    }
+
+    /**
+     * Converte imagens <img> em data URLs base64 para garantir que apareçam no PDF,
+     * mesmo se o DomPDF não puder buscar recursos remotos.
+     */
+    protected static function inlineImages(DOMDocument $dom, DOMXPath $xpath, string $baseUrl): void
+    {
+        foreach ($xpath->query('//img') as $img) {
+            if (! $img instanceof \DOMElement) {
+                continue;
+            }
+
+            $src = trim($img->getAttribute('src'));
+            if ($src === '' || str_starts_with($src, 'data:')) {
+                continue;
+            }
+
+            $url = $src;
+            if (! str_starts_with($url, 'http://') && ! str_starts_with($url, 'https://')) {
+                $url = rtrim($baseUrl, '/').'/'.ltrim($url, '/');
+            }
+
             try {
-                $response = $this->client()->get($url);
-                if (! $response->successful()) {
-                    return $m[0];
-                }
-                $body = $response->body();
-                $contentType = $response->header('Content-Type') ?? '';
-                $mediaType = 'image/png';
-                if (preg_match('/^image\/(\w+)/i', $contentType, $ct)) {
-                    $mediaType = 'image/'.strtolower($ct[1]);
-                }
-                $b64 = base64_encode($body);
+                $response = Http::withOptions([
+                    'verify' => config('services.simulador_online.verify_ssl', false),
+                    'timeout' => 15,
+                ])->get($url);
 
-                return 'src="data:'.$mediaType.';base64,'.$b64.'"';
-            } catch (\Throwable) {
-                return $m[0];
+                if (! $response->successful()) {
+                    continue;
+                }
+
+                $mime = $response->header('Content-Type') ?? 'image/jpeg';
+                if (! str_starts_with($mime, 'image/')) {
+                    $mime = 'image/jpeg';
+                }
+
+                $img->setAttribute(
+                    'src',
+                    'data:'.$mime.';base64,'.base64_encode($response->body())
+                );
+            } catch (\Throwable $e) {
+                // Em caso de erro ao baixar a imagem, simplesmente mantém o src original
+                continue;
             }
-        }, $html);
+        }
     }
 
     /**
-     * Remove do HTML tags que não devem ir para o PDF (script, style, link, base).
+     * Normaliza quebras de linha <br>, removendo repetições excessivas.
      */
-    protected static function stripUselessTags(string $html): string
+    protected static function normalizeBreaks(string $html): string
     {
-        $html = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $html);
-        $html = preg_replace('/<style\b[^>]*>.*?<\/style>/is', '', $html);
-        $html = preg_replace('/<link\b[^>]*>/i', '', $html);
-        $html = preg_replace('/<base\b[^>]*>/i', '', $html);
+        // Colapsa sequências de 2+ <br> (com ou sem barra) em um único <br>
+        $html = preg_replace('/(\s*<br\s*\/?>\s*){2,}/i', '<br>', $html ?? '') ?? $html;
 
         return $html;
     }
