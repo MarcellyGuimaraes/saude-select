@@ -32,9 +32,12 @@
     <div class="absolute bottom-0 w-full bg-white border-t p-4 shadow-lg-up">
         <div class="flex justify-between items-center">
             <span class="text-xs text-gray-500"><span id="selected-count">0</span> planos selecionados</span>
-            <button onclick="nextStep(5)" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-green-700 text-sm">
+            <button onclick="validateAndProceedStep4()" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-green-700 text-sm">
                 LIBERAR PREÇOS <i class="fas fa-lock-open ml-1"></i>
             </button>
+        </div>
+        <div id="step-4-validation-alert" class="hidden mt-2 p-2 bg-yellow-50 text-yellow-800 text-[10px] rounded border border-yellow-200">
+            <i class="fas fa-exclamation-triangle mr-1"></i> <span id="step-4-alert-msg">Por favor, selecione pelo menos um plano.</span>
         </div>
     </div>
 </div>

@@ -303,7 +303,7 @@
         }
 
         function initializeStep5() {
-            // Eventos já estão nos onclick inline
+            renderSelectedPlansSummary();
         }
 
         // PASSO 1 será inicializado na função initializeStep1()
@@ -546,6 +546,10 @@
         }
 
         function togglePlanSelection(card) {
+            // Limpa alerta ao mexer
+            const alertBox = document.getElementById('step-4-validation-alert');
+            if (alertBox) alertBox.classList.add('hidden');
+
             // Logica visual simples de seleção
             const check = card.querySelector('.selection-check');
             const isSelected = !check.classList.contains('hidden');
@@ -565,6 +569,95 @@
             document.getElementById('selected-count').innerText = state.selectedPlans.length;
         }
 
+        async function validateAndProceedStep4() {
+            if (state.selectedPlans.length === 0) {
+                const alertBox = document.getElementById('step-4-validation-alert');
+                if (alertBox) alertBox.classList.remove('hidden');
+                
+                // Scroll suave até o alerta
+                if (alertBox) alertBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+
+            // Inicia loading no botão
+            const btn = document.querySelector('#step-4 button');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> PROCESSANDO...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/proposta/gerar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({
+                        planIds: state.selectedPlans,
+                        lives: state.lives,
+                        profile: state.profile
+                    })
+                });
+
+                const data = await response.json();
+                console.log(data);
+                if (data.success) {
+                    if (data.plans_without_internacao && data.plans_without_internacao.length > 0) {
+                        const planNames = data.plans_without_internacao.join(', ');
+                        const msg = `Atenção: Os seguintes planos não possuem rede credenciada com internação eletiva:\n\n${planNames}\n\nDeseja continuar com a simulação mesmo assim?`;
+                        
+                        if (!confirm(msg)) {
+                            btn.innerHTML = originalHtml;
+                            btn.disabled = false;
+                            return;
+                        }
+                    }
+                    nextStep(5);
+                } else {
+                    alert('Erro ao gerar simulação: ' + (data.error || 'Erro desconhecido'));
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro na conexão ao gerar simulação.');
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            }
+        }
+
+        function renderSelectedPlansSummary() {
+            const container = document.getElementById('selected-plans-summary');
+            if (!container) return;
+
+            const selected = state.planos.filter(p => state.selectedPlans.includes(p.id));
+            
+            if (selected.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let html = '<p class="text-[10px] font-bold text-gray-400 uppercase text-left mb-2">Planos Selecionados:</p>';
+            selected.forEach(plano => {
+                html += `
+                    <div class="flex items-center gap-3 p-2 bg-gray-50 rounded-lg border border-gray-100">
+                        ${plano.operadora_logo 
+                            ? `<img src="${plano.operadora_logo}" alt="${plano.operadora}" class="h-6 w-auto" />`
+                            : `<div class="w-10 h-6 bg-gray-200 rounded animate-pulse"></div>`
+                        }
+                        <div class="text-left">
+                            <p class="text-xs font-bold text-gray-800 leading-tight">${plano.nome || plano.operadora}</p>
+                            <p class="text-[10px] text-gray-500">${plano.operadora}</p>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
         // --- PASSO 5: FINALIZAR ---
         function finishProcess() {
             const zap = document.getElementById('whatsapp-input');
@@ -573,16 +666,17 @@
                 return;
             }
 
-            // Loading fake
+            // Como a simulação já foi gerada no passo anterior, 
+            // aqui apenas redirecionamos. No futuro, você pode enviar o WhatsApp 
+            // para salvar no lead antes de redirecionar.
+            
             const btn = document.querySelector('#step-5 button');
             if (btn) {
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando PDF...';
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Abrindo Proposta...';
+                btn.disabled = true;
             }
 
-            setTimeout(() => {
-                loadFinalStep();
-                // Aqui você faria o POST para seu controller Laravel
-            }, 1500);
+            window.location.href = '/proposta';
         }
 
         // --- LOCALIZAÇÃO ---

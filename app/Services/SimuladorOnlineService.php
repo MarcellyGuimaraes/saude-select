@@ -364,13 +364,31 @@ class SimuladorOnlineService
     }
 
     /**
-     * POST em /simulacao/nova conforme o curl fornecido.
-     * Retorna o HTML da resposta.
+     * Retorna o HTML bruto da simulação para fins de teste (Adesão padrão).
      */
     public function getAdesaoRawHtml(): string
     {
+        $planIds = [408270, 420159, 384619];
+        $lives = ['29-33' => 2];
+        
+        return $this->getSimulationRawHtml($planIds, $lives, 'adesao');
+    }
+
+    /**
+     * Gera o HTML bruto da simulação para planos específicos.
+     */
+    public function getSimulationRawHtml(array $planIds, array $lives, string $profile): string
+    {
         $this->login();
 
+        $tipoTabela = match ($profile) {
+            'pme' => 3,
+            'adesao' => 4,
+            default => 2,
+        };
+
+        $totalVidas = array_sum($lives);
+        
         $novaPageHtml = $this->client()->get($this->baseUrl.'/simulacao/nova')->body();
         $csrfToken = null;
         if (preg_match('/name="simulacao\[_token\]"\s+value="([^"]+)"/', $novaPageHtml, $matches)) {
@@ -380,34 +398,38 @@ class SimuladorOnlineService
         $corretorEmail = config('services.simulador_online.corretor_email', '');
         $textoInicial = "Primeiramente, agradecemos pelo seu contato.\r\nInformamos que os custos e as condições abaixo são determinadas por suas respectivas operadoras.\r\n";
 
-        // Monta o body exatamente como no curl (simulacao[info][], simulacao[tabelas][] com chave repetida)
         $params = [
             'simulacao[destNome]' => '',
             'simulacao[destContato]' => '',
             'simulacao[destEmail]' => '',
-            'simulacao[tipoTabela]' => '2',
+            'simulacao[tipoTabela]' => $tipoTabela,
             'simulacao[tipoPlano]' => '1',
             'simulacao[acomodacao]' => '',
-            'simulacao[totalVidas]' => '2',
+            'simulacao[totalVidas]' => $totalVidas,
             'simulacao[filtros][abrangencia]' => '',
             'simulacao[filtros][tipoOperadora]' => '',
             'simulacao[filtros][segmento]' => '',
             'simulacao[filtros][fatormoder]' => '',
         ];
+
         $bodyParts = [];
         foreach ($params as $k => $v) {
             $bodyParts[] = rawurlencode($k).'='.rawurlencode($v);
         }
+        
         foreach ([1, 2, 3, 4, 5] as $v) {
             $bodyParts[] = rawurlencode('simulacao[info][]').'='.$v;
         }
-        $faixasVidas = [0, 0, 0, 2, 0, 0, 0, 0, 0, 0];
-        foreach ($faixasVidas as $i => $vidas) {
-            $bodyParts[] = rawurlencode("simulacao[faixas][{$i}][vidas]").'='.$vidas;
+
+        foreach (self::AgeBracketKeys as $index => $key) {
+            $vidas = (int) ($lives[$key] ?? 0);
+            $bodyParts[] = rawurlencode("simulacao[faixas][{$index}][vidas]").'='.$vidas;
         }
-        foreach ([408270, 420159, 384619] as $id) {
+
+        foreach ($planIds as $id) {
             $bodyParts[] = rawurlencode('simulacao[tabelas][]').'='.$id;
         }
+
         $bodyParts[] = rawurlencode('simulacao[textoInicial]').'='.rawurlencode($textoInicial);
         $bodyParts[] = rawurlencode('simulacao[regiao]').'=2';
         $bodyParts[] = rawurlencode('simulacao[corretorEmail]').'='.rawurlencode($corretorEmail);
@@ -415,12 +437,14 @@ class SimuladorOnlineService
         $bodyParts[] = rawurlencode('simulacao[adesao][administradora]').'=';
         $bodyParts[] = rawurlencode('simulacao[adesao][entidade]').'=';
         $bodyParts[] = rawurlencode('simulacao[adesao][profissao]').'=';
+        
         if ($csrfToken) {
             $bodyParts[] = rawurlencode('simulacao[_token]').'='.rawurlencode($csrfToken);
         }
-        $bodyString = implode('&', $bodyParts);
 
+        $bodyString = implode('&', $bodyParts);
         $postUrl = $this->baseUrl.'/simulacao/nova?'.time();
+
         $response = $this->client()
             ->withHeaders([
                 'Content-Type' => 'application/x-www-form-urlencoded',
@@ -430,12 +454,64 @@ class SimuladorOnlineService
             ->withBody($bodyString, 'application/x-www-form-urlencoded')
             ->post($postUrl);
 
-        $body = $response->body();
         if (! $response->successful()) {
-            throw new \Exception('Erro ao buscar simulação: Status '.$response->status().' - POST URL: '.$postUrl.' - Body: '.substr($body, 0, 200));
+            throw new \Exception('Erro ao buscar simulação: Status '.$response->status().' - Body: '.substr($response->body(), 0, 200));
         }
 
-        return $body;
+        return $response->body();
+    }
+
+    /**
+     * Verifica quais planos da simulação não possuem internação eletiva.
+     */
+    public function getPlansWithoutInternacao(array $planIds, array $lives, string $profile): array
+    {
+        $rawHtml = $this->getSimulationRawHtml($planIds, $lives, $profile);
+        $cleanHtml = self::extractClientProposalContent($rawHtml, $this->baseUrl);
+
+        return self::identifyPlansWithoutInternacao($cleanHtml);
+    }
+
+    /**
+     * Analisa o HTML do cliente e identifica planos que não possuem "H" (internação eletiva) na rede credenciada.
+     */
+    public static function identifyPlansWithoutInternacao(string $cleanHtml): array
+    {
+        $dom = new DOMDocument();
+        libxml_use_internal_errors(true);
+        $dom->loadHTML('<?xml encoding="UTF-8">'.$cleanHtml);
+        libxml_clear_errors();
+        $xpath = new DOMXPath($dom);
+
+        $plansWithoutInternacao = [];
+
+        foreach ($xpath->query('//div[contains(@class,"operadora")]') as $operadora) {
+            /** @var \DOMElement $operadora */
+            // Busca o nome do plano/operadora de forma mais flexível
+            $nomeOperadora = trim($xpath->query('.//p[contains(@class, "fz-12")]', $operadora)->item(0)?->textContent ?? '');
+            if (!$nomeOperadora) {
+               $nomeOperadora = trim($xpath->query('.//div[contains(@class, "logotipo")]/p', $operadora)->item(0)?->textContent ?? 'Plano Desconhecido');
+            }
+            
+            $hasH = false;
+            foreach ($xpath->query('.//div[contains(@class,"bloco")]', $operadora) as $bloco) {
+                /** @var \DOMElement $bloco */
+                $h4 = $xpath->query('.//h4', $bloco)->item(0);
+                if ($h4 && trim($h4->textContent) === 'Rede Credenciada') {
+                    // Verifica se existe " - H" ou " -H" no texto, garantindo que seja um código isolado
+                    if (preg_match('/\s-\s*H\b/', $bloco->textContent)) {
+                        $hasH = true;
+                    }
+                    break;
+                }
+            }
+
+            if (!$hasH) {
+                $plansWithoutInternacao[] = $nomeOperadora;
+            }
+        }
+
+        return $plansWithoutInternacao;
     }
 
     /**

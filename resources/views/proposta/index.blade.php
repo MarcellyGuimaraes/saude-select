@@ -18,37 +18,24 @@
     </style>
 </head>
 <body>
-    <h1>{{ $titulo ?? 'Teste: Resposta do Simulador' }}</h1>
+    <h1>{{ $titulo ?? 'Sua Proposta de Plano de Saúde' }}</h1>
     @if(isset($payloadInfo))
-        <p class="meta">{{ $payloadInfo }} Use a busca do navegador (Ctrl+F) para inspecionar o HTML.</p>
-    @else
-        <p class="meta">Use a busca (Ctrl+F) para inspecionar o conteúdo.</p>
+        <p class="meta">{{ $payloadInfo }}</p>
     @endif
 
     @if(isset($error))
         <div class="error block">{{ $error }}</div>
     @else
         <p class="meta">
-            <a href="{{ route('test.simulador-adesao.pdf') }}">📄 Baixar PDF completo (sistema)</a>
+            <a href="{{ route('proposta.sistema') }}" target="_blank">📄 Visualizar Proposta Completa (Sistema)</a>
             —
-            <a href="{{ route('test.simulador-adesao.pdf-cliente') }}">📄 Baixar PDF do cliente</a> (apenas plano/preços e Rede Credenciada por operadora)
+            <a href="{{ route('proposta.cliente') }}" target="_blank">📄 Visualizar Proposta do Cliente</a>
         </p>
         <div class="block">
-            <h2>HTML renderizado (o que vem do simulador — para fins comparativos)</h2>
             <div class="resposta-renderizada">{!! $rawHtml ?? '' !!}</div>
         </div>
-        <div class="block">
-            <h2>HTML bruto ({{ strlen($rawHtml ?? '') }} caracteres)</h2>
-            <textarea readonly>{{ $rawHtml ?? '' }}</textarea>
-        </div>
-        @if(!empty($planosParsed))
-            <div class="block">
-                <h2>Planos parseados ({{ count($planosParsed) }} itens)</h2>
-                <pre>{{ json_encode($planosParsed, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
-            </div>
-        @endif
     @endif
 
-    <p class="meta"><a href="{{ url()->previous('/') }}">← Voltar</a></p>
+    <p class="meta"><a href="{{ route('home') }}">← Iniciar nova simulação</a></p>
 </body>
 </html>

@@ -8,6 +8,10 @@
         <p class="text-gray-600 text-sm">Para onde enviamos o PDF oficial com a Rede Credenciada e os Preços desbloqueados?</p>
     </div>
 
+    <div id="selected-plans-summary" class="mb-6 space-y-2">
+        <!-- Selecionados serão injetados aqui -->
+    </div>
+
     <div class="mb-6 text-left">
         <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Seu WhatsApp</label>
         <input type="tel" id="whatsapp-input" placeholder="(21) 99999-9999" class="w-full p-3 border-2 border-green-200 rounded-lg focus:outline-none focus:border-green-500 text-lg">
