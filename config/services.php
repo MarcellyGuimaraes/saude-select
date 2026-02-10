@@ -3,16 +3,16 @@
 return [
 
     /*
-    |--------------------------------------------------------------------------
-    | Third Party Services
-    |--------------------------------------------------------------------------
-    |
-    | This file is for storing the credentials for third party services such
-    | as Mailgun, Postmark, AWS and more. This file provides the de facto
-    | location for this type of information, allowing packages to have
-    | a conventional file to locate the various service credentials.
-    |
-    */
+     |--------------------------------------------------------------------------
+     | Third Party Services
+     |--------------------------------------------------------------------------
+     |
+     | This file is for storing the credentials for third party services such
+     | as Mailgun, Postmark, AWS and more. This file provides the de facto
+     | location for this type of information, allowing packages to have
+     | a conventional file to locate the various service credentials.
+     |
+     */
 
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
@@ -42,6 +42,12 @@ return [
         'username' => env('SIMULADOR_ONLINE_USERNAME'),
         'password' => env('SIMULADOR_ONLINE_PASSWORD'),
         'verify_ssl' => env('SIMULADOR_ONLINE_VERIFY_SSL', false),
+    ],
+
+    'uazapi' => [
+        'base_url' => env('UAZAPI_BASE_URL', 'http://localhost:8080'),
+        'token' => env('UAZAPI_TOKEN'),
+        'instance' => env('UAZAPI_INSTANCE'),
     ],
 
 ];

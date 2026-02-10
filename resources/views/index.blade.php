@@ -554,13 +554,13 @@
             const check = card.querySelector('.selection-check');
             const isSelected = !check.classList.contains('hidden');
             const planoId = parseInt(card.getAttribute('data-plano-id'));
-
+            
             if (isSelected) {
                 check.classList.add('hidden');
                 card.classList.remove('ring-2', 'ring-green-500');
                 state.selectedPlans = state.selectedPlans.filter(id => id !== planoId);
             } else {
-                if (state.selectedPlans.length >= 3) return; // Max 3
+                // if (state.selectedPlans.length >= 3) return; // Max 3
                 check.classList.remove('hidden');
                 card.classList.add('ring-2', 'ring-green-500');
                 state.selectedPlans.push(planoId);
@@ -659,24 +659,52 @@
         }
 
         // --- PASSO 5: FINALIZAR ---
-        function finishProcess() {
-            const zap = document.getElementById('whatsapp-input');
-            if (!zap || zap.value.length < 8) {
-                alert("Digite um WhatsApp válido.");
+        async function finishProcess() {
+            const zapInput = document.getElementById('whatsapp-input');
+            const zap = zapInput ? zapInput.value.replace(/\D/g, '') : '';
+            
+            if (zap.length < 10) {
+                alert("Por favor, digite um WhatsApp válido com DDD.");
                 return;
             }
 
-            // Como a simulação já foi gerada no passo anterior, 
-            // aqui apenas redirecionamos. No futuro, você pode enviar o WhatsApp 
-            // para salvar no lead antes de redirecionar.
-            
             const btn = document.querySelector('#step-5 button');
+            const originalHtml = btn.innerHTML;
+            
             if (btn) {
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Abrindo Proposta...';
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando Proposta...';
                 btn.disabled = true;
             }
 
-            window.location.href = '/proposta';
+            try {
+                const response = await fetch('/proposta/enviar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({
+                        phone: zap
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    loadFinalStep();
+                } else {
+                    alert('Erro ao enviar proposta: ' + (data.message || data.error || 'Erro desconhecido'));
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro de conexão. Tente novamente.');
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            }
         }
 
         // --- LOCALIZAÇÃO ---

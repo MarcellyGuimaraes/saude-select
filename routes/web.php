@@ -32,6 +32,7 @@ Route::controller(PropostaController::class)->group(function () {
     Route::post('/proposta/gerar', 'gerar')->name('proposta.gerar');
     Route::get('/proposta/sistema', 'showSystemHtml')->name('proposta.sistema');
     Route::get('/proposta/cliente', 'showClientHtml')->name('proposta.cliente');
+    Route::post('/proposta/enviar', [\App\Http\Controllers\SendProposalController::class , 'send'])->name('proposta.enviar');
 });
 
 require __DIR__ . '/settings.php';
