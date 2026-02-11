@@ -23,6 +23,7 @@ class SearchHospitalsRequest extends FormRequest
     {
         return [
             'q' => ['required', 'string', 'min:1'],
+            'regiao' => ['nullable', 'integer'],
         ];
     }
 }

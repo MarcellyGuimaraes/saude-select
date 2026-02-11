@@ -26,6 +26,7 @@ class SearchPlansRequest extends FormRequest
             'lives' => ['required', 'array'],
             'hospital' => ['nullable', 'string'],
             'hospitalId' => ['nullable', 'integer'],
+            'regiao' => ['nullable', 'integer'],
         ];
     }
 }

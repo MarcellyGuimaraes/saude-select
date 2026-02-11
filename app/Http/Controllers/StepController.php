@@ -10,9 +10,9 @@ use Illuminate\Http\JsonResponse;
 
 class StepController extends Controller
 {
-    public function __construct(
-        protected SimuladorOnlineService $simuladorService
-    ) {}
+    public function __construct(protected SimuladorOnlineService $simuladorService)
+    {
+    }
 
     public function show(int $step): View
     {
@@ -23,7 +23,7 @@ class StepController extends Controller
         return view("steps.step-{$step}");
     }
 
-    public function final(): View
+    public function final (): View
     {
         return view('steps.step-final');
     }
@@ -32,7 +32,8 @@ class StepController extends Controller
     {
         try {
             $query = $request->validated('q');
-            $result = $this->simuladorService->searchHospitalsForAutocomplete($query);
+            $regiao = $request->validated('regiao');
+            $result = $this->simuladorService->searchHospitalsForAutocomplete($query, $regiao);
 
             $payload = [
                 'success' => true,
@@ -48,7 +49,8 @@ class StepController extends Controller
             }
 
             return response()->json($payload);
-        } catch (\Throwable $e) {
+        }
+        catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
                 'error' => $e->getMessage(),
@@ -66,7 +68,8 @@ class StepController extends Controller
                 'planos' => $planos,
                 'total' => count($planos),
             ]);
-        } catch (\Throwable $e) {
+        }
+        catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
                 'error' => $e->getMessage(),

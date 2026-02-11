@@ -86,7 +86,7 @@ class SimuladorOnlineService
 
         $hospitais = array_map(fn (array $item): array => [
             'id' => $item['id'] ?? null,
-            'nome' => $item['nome'] ?? $item['name'] ?? '',
+            'nome' => $item['nome'] ?? $item['name'] ?? $item['full_descricao'] ?? '',
         ], $rawList);
 
         return [
