@@ -624,7 +624,19 @@
         }
 
         async function buscarPlanosAPI() {
-            showMainLoading('Buscando as melhores opções...');
+            // Tenta exibir loading local para não remover a estrutura do passo 4
+            const plansContainer = document.querySelector('#step-4 .space-y-4');
+            
+            if (plansContainer) {
+                plansContainer.innerHTML = `
+                    <div class="text-center py-12">
+                        <i class="fas fa-spinner fa-spin text-4xl text-blue-600 mb-4"></i>
+                        <p class="text-gray-500">Buscando as melhores opções para você...</p>
+                    </div>
+                `;
+            } else {
+                showMainLoading('Buscando as melhores opções...');
+            }
             
             try {
                 const response = await fetch('/api/planos/buscar', {
