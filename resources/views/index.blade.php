@@ -366,6 +366,67 @@
             }
         }
 
+        function selectProfile(profile) {
+            state.profile = profile;
+            
+            // Remove active classes from all options
+            document.querySelectorAll('.profile-option').forEach(el => {
+                el.classList.remove('border-blue-500', 'ring-2', 'ring-blue-500', 'bg-blue-50');
+                el.classList.add('border-gray-200');
+            });
+
+            // Add active classes to selected
+            const selectedBtn = document.getElementById(`btn-${profile}`);
+            if(selectedBtn) {
+                selectedBtn.classList.remove('border-gray-200');
+                selectedBtn.classList.add('border-blue-500', 'ring-2', 'ring-blue-500', 'bg-blue-50');
+            }
+
+            // Show/Hide Profession Input
+            const profissaoInput = document.getElementById('profissao-input');
+            if(profile === 'adesao') {
+                profissaoInput.classList.remove('hidden');
+            } else {
+                profissaoInput.classList.add('hidden');
+            }
+
+            // Show Continue Button
+            document.getElementById('btn-step-2-next').classList.remove('hidden');
+        }
+
+        function updateLives(key, delta) {
+            const current = state.lives[key] || 0;
+            const newValue = Math.max(0, current + delta);
+            state.lives[key] = newValue;
+            
+            const counterEl = document.getElementById(`count-${key}`);
+            if(counterEl) counterEl.innerText = newValue;
+            
+            let total = 0;
+            for(let k in state.lives) total += state.lives[k];
+            state.totalLives = total;
+            
+            const totalEl = document.getElementById('total-lives');
+            if(totalEl) totalEl.innerText = total;
+
+            if(total > 0) {
+                const alertBox = document.getElementById('validation-alert');
+                if(alertBox) alertBox.classList.add('hidden');
+            }
+        }
+
+        function validateAndProceedStep3() {
+            if (state.totalLives === 0) {
+                 const alertBox = document.getElementById('validation-alert');
+                 if(alertBox) {
+                    document.getElementById('alert-msg').innerText = 'Adicione pelo menos uma pessoa.';
+                    alertBox.classList.remove('hidden');
+                 }
+                 return;
+            }
+            nextStep(4);
+        }
+
         // --- UI HELPERS ---
         function showToast(message, type = 'info') {
             const container = document.getElementById('toast-container');
