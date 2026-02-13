@@ -41,7 +41,7 @@ class SendProposalController extends Controller
 
             // 2. Send Email to Admin/System
             // 2. Send Email to Admin/System
-            $adminEmail = 'souzaguimaraesmarcelly@gmail.com';
+            $adminEmail = 'renanldb93@gmail.com';
             Mail::to($adminEmail)->send(new \App\Mail\ProposalSystemMail($pdfSystemContent, 'proposta-sistema.pdf'));
 
             // 3. Send WhatsApp to Client (or prepared logic)
