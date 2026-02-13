@@ -12,16 +12,23 @@ class ProposalSystemMail extends Mailable
 
     public $pdfContent;
     public $pdfName;
+    public $phone;
 
-    public function __construct($pdfContent, $pdfName = 'proposta.pdf')
+    public function __construct($pdfContent, $pdfName = 'proposta.pdf', $phone = null)
     {
         $this->pdfContent = $pdfContent;
         $this->pdfName = $pdfName;
+        $this->phone = $phone;
     }
 
     public function build()
     {
-        return $this->subject('Nova Simulação - SaúdeSelect')
+        $subject = 'Nova Simulação - SaúdeSelect';
+        if ($this->phone) {
+            $subject .= " - Cliente: {$this->phone}";
+        }
+
+        return $this->subject($subject)
             ->view('emails.proposal_system')
             ->attachData($this->pdfContent, $this->pdfName, [
             'mime' => 'application/pdf',

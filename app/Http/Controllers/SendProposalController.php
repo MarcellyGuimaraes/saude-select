@@ -41,12 +41,12 @@ class SendProposalController extends Controller
 
             // 2. Send Email to Admin/System
             // 2. Send Email to Admin/System
+            $clientPhone = $request->input('phone');
             $adminEmail = 'renanldb93@gmail.com';
-            Mail::to($adminEmail)->send(new \App\Mail\ProposalSystemMail($pdfSystemContent, 'proposta-sistema.pdf'));
+            Mail::to($adminEmail)->send(new \App\Mail\ProposalSystemMail($pdfSystemContent, 'proposta-sistema.pdf', $clientPhone));
 
             // 3. Send WhatsApp to Client (or prepared logic)
             // Expecting phone in request or session (if collected)
-            $clientPhone = $request->input('phone');
 
             $apiResult = ['success' => false];
             if ($clientPhone) {
