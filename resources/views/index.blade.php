@@ -62,11 +62,14 @@
             </div>
         </div>
         <div class="flex justify-between items-center mb-2 relative">
-            <h1 class="text-xl font-bold text-gray-800"><i class="fas fa-heartbeat text-blue-600 mr-2"></i>SaúdeSelect</h1>
-            <div id="location-container" class="text-xs text-gray-500 flex items-center bg-white px-2 py-1 rounded-full shadow-sm cursor-pointer hover:bg-gray-50">
-                <i class="fas fa-map-marker-alt mr-1 text-red-500"></i>
-                <span id="location-text">Carregando...</span>
-                <i class="fas fa-chevron-down ml-1"></i>
+            <h1 class="text-xs md:text-sm font-semibold text-gray-500 italic flex-1 mr-2">
+                ⏳ Gerando sua tabela oficial 2026 para <span id="header-city-name" class="font-bold text-blue-600">...</span>...
+            </h1>
+            <div id="location-container" class="text-[10px] md:text-xs text-gray-500 flex items-center bg-white px-3 py-1.5 rounded-full shadow-sm cursor-pointer hover:bg-blue-50 border border-gray-100 transition-all group">
+                <span class="mr-1 hidden md:inline">📍 Você está em </span>
+                <span class="mr-1 md:hidden">📍</span>
+                <span id="location-text" class="font-bold text-gray-700 group-hover:text-blue-600 transition-colors">detectando...</span>
+                <i class="fas fa-chevron-down ml-2 text-blue-400 group-hover:text-blue-600"></i>
             </div>
         </div>
 
@@ -940,6 +943,7 @@
         }
 
         // --- LOCALIZAÇÃO ---
+        // --- LOCALIZAÇÃO ---
         function getCityName(latitude, longitude) {
             // Usando API gratuita do OpenStreetMap (Nominatim) para geocodificação reversa
             const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`;
@@ -953,6 +957,7 @@
             .then(data => {
                 const locationText = document.getElementById('location-text');
                 const locationError = document.getElementById('location-error');
+                const headerCityName = document.getElementById('header-city-name');
 
                 if (data && data.address) {
                     // Tenta obter o nome da cidade de diferentes campos possíveis
@@ -965,7 +970,8 @@
 
                     const stateName = data.address.state;
                     
-                    locationText.innerText = city;
+                    updateLocationUI(city, stateName);
+
                     state.city = city;
                     
                     // Update Region ID based on detected state
@@ -976,33 +982,64 @@
                     state.locationGranted = true; // Marca que a localização foi concedida
                     locationError.classList.add('hidden');
 
-                    // Se ainda não carregou a primeira etapa, carrega agora
-                    const container = document.getElementById('step-container');
-                    if (state.step === 1 && (container.innerHTML.includes('Aguardando Localização') || container.innerHTML.includes('Localização Necessária'))) {
-                        nextStep(1);
-                    }
+                    proceedIfReady();
                 } else {
-                    locationText.innerText = 'Localização não identificada';
-                    locationError.classList.add('hidden');
-                    // Mesmo sem cidade identificada, consideramos que a permissão foi concedida
-                    state.locationGranted = true;
-                    const container = document.getElementById('step-container');
-                    if (state.step === 1 && (container.innerHTML.includes('Aguardando Localização') || container.innerHTML.includes('Localização Necessária'))) {
-                        nextStep(1);
-                    }
+                   fallbackToIP();
                 }
             })
             .catch(error => {
-                console.error('Erro ao obter nome da cidade:', error);
-                const locationText = document.getElementById('location-text');
-                locationText.innerText = 'Erro ao carregar';
-                // Em caso de erro na API, ainda consideramos que a permissão foi concedida
-                state.locationGranted = true;
-                const container = document.getElementById('step-container');
-                if (state.step === 1 && (container.innerHTML.includes('Aguardando Localização') || container.innerHTML.includes('Localização Necessária'))) {
-                    nextStep(1);
-                }
+                console.error('Erro ao obter nome da cidade (GPS):', error);
+                fallbackToIP();
             });
+        }
+
+        function fallbackToIP() {
+            console.log('Tentando obter localização via IP...');
+            // Fallback para API de IP (ex: ipapi.co - limite gratuito generoso para frontend)
+            fetch('https://ipapi.co/json/')
+                .then(res => res.json())
+                .then(data => {
+                    const city = data.city || 'Sua Região';
+                    const stateName = data.region; // ipapi retorna nome do estado ex: "Rio de Janeiro"
+                    
+                    console.log('Localização via IP:', city, stateName);
+
+                    updateLocationUI(city, stateName);
+                    
+                    state.city = city;
+                     // Update Region ID based on detected state
+                     // ipapi region key matches our map mostly
+                    if (stateName && REGION_MAP[stateName]) {
+                        state.regionId = REGION_MAP[stateName];
+                    }
+
+                    state.locationGranted = true;
+                    document.getElementById('location-error').classList.add('hidden');
+                    proceedIfReady();
+                })
+                .catch(err => {
+                    console.error('Erro ao obter loc via IP:', err);
+                     // Último caso: Default
+                    updateLocationUI('Rio de Janeiro', 'Rio de Janeiro');
+                    state.locationGranted = true; // Assume true para não bloquear
+                    proceedIfReady();
+                });
+        }
+
+        function updateLocationUI(city, stateName) {
+             const locationText = document.getElementById('location-text');
+             const headerCityName = document.getElementById('header-city-name');
+             
+             if(locationText) locationText.innerText = city;
+             if(headerCityName) headerCityName.innerText = city;
+        }
+
+        function proceedIfReady() {
+             // Se ainda não carregou a primeira etapa, carrega agora
+             const container = document.getElementById('step-container');
+             if (state.step === 1 && (container.innerHTML.includes('Aguardando Localização') || container.innerHTML.includes('Localização Necessária') || container.innerHTML.includes('Não conseguimos pegar'))) {
+                 nextStep(1);
+             }
         }
 
         function requestLocation() {
@@ -1010,26 +1047,13 @@
             const locationError = document.getElementById('location-error');
             const locationContainer = document.getElementById('location-container');
 
-            if (!navigator.geolocation) {
-                locationText.innerText = 'Navegador não suporta';
-                locationError.classList.remove('hidden');
-                state.locationGranted = false;
+            locationText.innerText = 'Detectando...';
+            locationError.classList.add('hidden');
 
-                // Atualiza a tela principal para mostrar mensagem de erro
-                const container = document.getElementById('step-container');
-                container.innerHTML = `
-                    <div class="p-8 text-center min-h-[500px] flex flex-col justify-center items-center">
-                        <i class="fas fa-exclamation-triangle text-6xl text-red-500 mb-4"></i>
-                        <h2 class="text-xl font-bold text-gray-800 mb-2">Não conseguimos pegar sua localização</h2>
-                        <p class="text-gray-600 mb-6 text-sm px-4">Seu navegador não suporta geolocalização. Por favor, use um navegador mais recente.</p>
-                        <p class="text-xs text-gray-500 px-6">Recomendamos usar Chrome, Firefox, Safari ou Edge atualizados.</p>
-                    </div>
-                `;
+            if (!navigator.geolocation) {
+                fallbackToIP();
                 return;
             }
-
-            locationText.innerText = 'Solicitando...';
-            locationError.classList.add('hidden');
 
             navigator.geolocation.getCurrentPosition(
                 (position) => {
@@ -1037,43 +1061,20 @@
                     getCityName(latitude, longitude);
                 },
                 (error) => {
-                    locationText.innerText = 'Permissão negada';
-                    locationError.classList.remove('hidden');
-                    state.locationGranted = false;
-
-                    // Atualiza a tela principal para mostrar mensagem de erro
-                    const container = document.getElementById('step-container');
-                    container.innerHTML = `
-                        <div class="p-8 text-center min-h-[500px] flex flex-col justify-center items-center">
-                            <i class="fas fa-exclamation-triangle text-6xl text-red-500 mb-4"></i>
-                            <h2 class="text-xl font-bold text-gray-800 mb-2">Não conseguimos pegar sua localização</h2>
-                            <p class="text-gray-600 mb-6 text-sm px-4">É necessário permitir o acesso à sua localização para continuar usando o sistema.</p>
-                            <button onclick="requestLocation()" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition">
-                                <i class="fas fa-location-arrow mr-2"></i>Tentar Novamente
-                            </button>
-                            <p class="text-xs text-gray-500 mt-4 px-6">Verifique as configurações de privacidade do seu navegador e permita o acesso à localização.</p>
-                        </div>
-                    `;
-
-                    // Adiciona evento de clique no container para tentar novamente
-                    locationContainer.onclick = () => {
-                        locationError.classList.add('hidden');
-                        requestLocation();
-                    };
+                    console.warn('GPS negado ou erro, usando IP fallback.', error);
+                    fallbackToIP();
                 },
                 {
                     enableHighAccuracy: true,
-                    timeout: 10000,
+                    timeout: 7000,
                     maximumAge: 0
                 }
             );
         }
 
         // Solicita localização quando a página carregar
-        // A primeira etapa só será carregada após a localização ser concedida
         document.addEventListener('DOMContentLoaded', () => {
             requestLocation();
-            // Não carrega a primeira etapa imediatamente - será carregada após localização ser concedida
         });
     </script>
 </body>
