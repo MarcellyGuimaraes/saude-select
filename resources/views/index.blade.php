@@ -369,32 +369,130 @@
             }
         }
 
+        const VALID_PROFESSIONS = [
+            'Administrador', 'Advogado', 'Arquiteto', 'Dentista', 'Economista', 
+            'Enfermeiro', 'Engenheiro', 'Estudante', 'Farmacêutico', 'Fisioterapeuta', 
+            'Jornalista', 'Médico', 'Nutricionista', 'Professor', 'Psicólogo', 
+            'Publicitário', 'Servidor Público', 'Vendedor', 'Veterinário'
+        ];
+
+        let profDebounce;
+
         function selectProfile(profile) {
             state.profile = profile;
             
-            // Remove active classes from all options
+            // Visuals: Dim others, Highlight selected
             document.querySelectorAll('.profile-option').forEach(el => {
-                el.classList.remove('border-blue-500', 'ring-2', 'ring-blue-500', 'bg-blue-50');
-                el.classList.add('border-gray-200');
+                // Reset to inactive state (dimmed)
+                el.classList.remove('border-blue-500', 'ring-2', 'ring-blue-500', 'bg-blue-50', 'opacity-100');
+                el.classList.add('border-gray-200', 'opacity-40', 'bg-white');
+                
+                // Reset indicator
+                const indicator = el.querySelector('.selected-indicator');
+                if(indicator) {
+                    indicator.classList.remove('bg-blue-500', 'border-blue-500');
+                    indicator.classList.add('border-gray-300');
+                    indicator.querySelector('div').classList.add('hidden');
+                }
             });
 
-            // Add active classes to selected
+            // Activate selected
             const selectedBtn = document.getElementById(`btn-${profile}`);
             if(selectedBtn) {
-                selectedBtn.classList.remove('border-gray-200');
-                selectedBtn.classList.add('border-blue-500', 'ring-2', 'ring-blue-500', 'bg-blue-50');
+                selectedBtn.classList.remove('border-gray-200', 'opacity-40', 'bg-white');
+                selectedBtn.classList.add('border-blue-500', 'ring-2', 'ring-blue-500', 'bg-blue-50', 'opacity-100');
+                
+                // Activate indicator
+                const indicator = selectedBtn.querySelector('.selected-indicator');
+                if(indicator) {
+                    indicator.classList.remove('border-gray-300');
+                    indicator.classList.add('bg-blue-500', 'border-blue-500');
+                    indicator.querySelector('div').classList.remove('hidden');
+                }
             }
 
-            // Show/Hide Profession Input
+            // Logic: PME Warning
+            const pmeWarning = document.getElementById('pme-warning');
+            if(pmeWarning) {
+                if(profile === 'pme') pmeWarning.classList.remove('hidden');
+                else pmeWarning.classList.add('hidden');
+            }
+
+            // Logic: Profession Input
             const profissaoInput = document.getElementById('profissao-input');
+            const btnContinue = document.getElementById('btn-step-2-next');
+
             if(profile === 'adesao') {
                 profissaoInput.classList.remove('hidden');
+                btnContinue.classList.add('hidden'); // Hide continue until profession selected/typed
+                setTimeout(() => document.getElementById('prof-search')?.focus(), 100);
             } else {
                 profissaoInput.classList.add('hidden');
+                btnContinue.classList.remove('hidden');
+            }
+        }
+
+        function debounceProfissao(query) {
+            clearTimeout(profDebounce);
+            const loading = document.getElementById('prof-loading');
+            const suggestions = document.getElementById('prof-suggestions');
+            
+            if(query.length < 2) {
+                suggestions.classList.add('hidden');
+                return;
             }
 
-            // Show Continue Button
-            document.getElementById('btn-step-2-next').classList.remove('hidden');
+            loading.classList.remove('hidden');
+
+            profDebounce = setTimeout(() => {
+                loading.classList.add('hidden');
+                
+                // Filter professions
+                const matches = VALID_PROFESSIONS.filter(p => p.toLowerCase().includes(query.toLowerCase()));
+                
+                if(matches.length > 0) {
+                    suggestions.innerHTML = matches.map(p => `
+                        <div onclick="selectProfession('${p}')" class="p-3 hover:bg-gray-100 cursor-pointer text-sm font-medium text-gray-700 border-b last:border-0 border-gray-100">
+                            ${p}
+                        </div>
+                    `).join('');
+                    suggestions.classList.remove('hidden');
+                } else {
+                    // Safety Net Logic: Fallback mechanism
+                    suggestions.innerHTML = `
+                         <div onclick="fallbackToCPF()" class="p-3 hover:bg-gray-100 cursor-pointer text-sm text-gray-500 border-b last:border-0 border-gray-100 bg-orange-50">
+                            <i class="fas fa-exclamation-circle text-orange-500 mr-1"></i> 
+                            Profissão não encontrada. 
+                            <span class="font-bold text-blue-600 block mt-1">Clique aqui para ver planos CPF →</span>
+                        </div>
+                    `;
+                    suggestions.classList.remove('hidden');
+                }
+            }, 300);
+        }
+
+        function selectProfession(prof) {
+            console.log('Selecionando profissão:', prof);
+            document.getElementById('prof-search').value = prof;
+            document.getElementById('prof-suggestions').classList.add('hidden');
+            
+            // Show continue button force
+            const btn = document.getElementById('btn-step-2-next');
+            console.log('Botão encontrado:', btn);
+            if(btn) {
+                btn.classList.remove('hidden');
+                btn.style.display = 'block'; // Force display
+                // Scroll to button
+                btn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        function fallbackToCPF() {
+            document.getElementById('prof-suggestions').classList.add('hidden');
+            showToast('Não encontramos uma tabela específica para esta profissão. Redirecionando para planos Pessoais...', 'info');
+            selectProfile('cpf');
+            // Optional: Auto advance?
+            setTimeout(() => nextStep(3), 1500); 
         }
 
         function updateLives(key, delta) {
