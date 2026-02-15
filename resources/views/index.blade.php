@@ -748,27 +748,37 @@
                     input.addEventListener('input', (e) => {
                         clearTimeout(debounceTimer);
                         const query = e.target.value;
+                        const spinner = document.getElementById('hospital-search-loading');
                         
                         if (query.length < 3) {
                             list.classList.add('hidden');
+                            if(spinner) spinner.classList.add('hidden');
                             return;
                         }
 
+                        if(spinner) spinner.classList.remove('hidden');
+
                         debounceTimer = setTimeout(async () => {
-                            const results = await buscarHospitaisAPI(query);
-                            if (results.length > 0) {
-                                list.innerHTML = results.map(h => `
-                                    <div class="p-3 hover:bg-gray-100 cursor-pointer border-b last:border-0 text-sm text-gray-700" 
-                                         onclick="selectHospital('${h.id}', '${h.nome}')">
-                                        <i class="fas fa-hospital-alt mr-2 text-gray-400"></i> ${h.nome}
-                                    </div>
-                                `).join('');
-                                list.classList.remove('hidden');
-                            } else {
-                                list.innerHTML = '<div class="p-3 text-sm text-gray-500 text-center">Nenhum hospital encontrado.</div>';
-                                list.classList.remove('hidden');
+                            try {
+                                const results = await buscarHospitaisAPI(query);
+                                if (results.length > 0) {
+                                    list.innerHTML = results.map(h => `
+                                        <div class="p-3 hover:bg-gray-100 cursor-pointer border-b last:border-0 text-sm text-gray-700" 
+                                             onclick="selectHospital('${h.id}', '${h.nome}')">
+                                            <i class="fas fa-hospital-alt mr-2 text-gray-400"></i> ${h.nome}
+                                        </div>
+                                    `).join('');
+                                    list.classList.remove('hidden');
+                                } else {
+                                    list.innerHTML = '<div class="p-3 text-sm text-gray-500 text-center">Nenhum hospital encontrado.</div>';
+                                    list.classList.remove('hidden');
+                                }
+                            } catch (e) {
+                                console.error(e);
+                            } finally {
+                                if(spinner) spinner.classList.add('hidden');
                             }
-                        }, 300);
+                        }, 500);
                     });
 
                     // Hide list on click outside
