@@ -382,19 +382,22 @@
             state.profile = profile;
             
             // Visuals: Dim others, Highlight selected
-            document.querySelectorAll('.profile-option').forEach(el => {
-                // Reset to inactive state (dimmed)
-                el.classList.remove('border-blue-500', 'ring-2', 'ring-blue-500', 'bg-blue-50', 'opacity-100');
-                el.classList.add('border-gray-200', 'opacity-40', 'bg-white');
-                
-                // Reset indicator
-                const indicator = el.querySelector('.selected-indicator');
-                if(indicator) {
-                    indicator.classList.remove('bg-blue-500', 'border-blue-500');
-                    indicator.classList.add('border-gray-300');
-                    indicator.querySelector('div').classList.add('hidden');
-                }
-            });
+            const options = document.querySelectorAll('.profile-option');
+            if(options.length > 0) {
+                options.forEach(el => {
+                    // Reset to inactive state (dimmed)
+                    el.classList.remove('border-blue-500', 'ring-2', 'ring-blue-500', 'bg-blue-50', 'opacity-100');
+                    el.classList.add('border-gray-200', 'opacity-40', 'bg-white');
+                    
+                    // Reset indicator
+                    const indicator = el.querySelector('.selected-indicator');
+                    if(indicator) {
+                        indicator.classList.remove('bg-blue-500', 'border-blue-500');
+                        indicator.classList.add('border-gray-300');
+                        indicator.querySelector('div').classList.add('hidden');
+                    }
+                });
+            }
 
             // Activate selected
             const selectedBtn = document.getElementById(`btn-${profile}`);
@@ -422,68 +425,15 @@
             const profissaoInput = document.getElementById('profissao-input');
             const btnContinue = document.getElementById('btn-step-2-next');
 
-            if(profile === 'adesao') {
-                profissaoInput.classList.remove('hidden');
-                btnContinue.classList.add('hidden'); // Hide continue until profession selected/typed
-                setTimeout(() => document.getElementById('prof-search')?.focus(), 100);
-            } else {
-                profissaoInput.classList.add('hidden');
-                btnContinue.classList.remove('hidden');
-            }
-        }
-
-        function debounceProfissao(query) {
-            clearTimeout(profDebounce);
-            const loading = document.getElementById('prof-loading');
-            const suggestions = document.getElementById('prof-suggestions');
-            
-            if(query.length < 2) {
-                suggestions.classList.add('hidden');
-                return;
-            }
-
-            loading.classList.remove('hidden');
-
-            profDebounce = setTimeout(() => {
-                loading.classList.add('hidden');
-                
-                // Filter professions
-                const matches = VALID_PROFESSIONS.filter(p => p.toLowerCase().includes(query.toLowerCase()));
-                
-                if(matches.length > 0) {
-                    suggestions.innerHTML = matches.map(p => `
-                        <div onclick="selectProfession('${p}')" class="p-3 hover:bg-gray-100 cursor-pointer text-sm font-medium text-gray-700 border-b last:border-0 border-gray-100">
-                            ${p}
-                        </div>
-                    `).join('');
-                    suggestions.classList.remove('hidden');
+            if(profissaoInput && btnContinue) {
+                if(profile === 'adesao') {
+                    profissaoInput.classList.remove('hidden');
+                    btnContinue.classList.add('hidden'); // Hide continue until profession selected/typed
+                    setTimeout(() => document.getElementById('prof-search')?.focus(), 100);
                 } else {
-                    // Safety Net Logic: Fallback mechanism
-                    suggestions.innerHTML = `
-                         <div onclick="fallbackToCPF()" class="p-3 hover:bg-gray-100 cursor-pointer text-sm text-gray-500 border-b last:border-0 border-gray-100 bg-orange-50">
-                            <i class="fas fa-exclamation-circle text-orange-500 mr-1"></i> 
-                            Profissão não encontrada. 
-                            <span class="font-bold text-blue-600 block mt-1">Clique aqui para ver planos CPF →</span>
-                        </div>
-                    `;
-                    suggestions.classList.remove('hidden');
+                    profissaoInput.classList.add('hidden');
+                    btnContinue.classList.remove('hidden');
                 }
-            }, 300);
-        }
-
-        function selectProfession(prof) {
-            console.log('Selecionando profissão:', prof);
-            document.getElementById('prof-search').value = prof;
-            document.getElementById('prof-suggestions').classList.add('hidden');
-            
-            // Show continue button force
-            const btn = document.getElementById('btn-step-2-next');
-            console.log('Botão encontrado:', btn);
-            if(btn) {
-                btn.classList.remove('hidden');
-                btn.style.display = 'block'; // Force display
-                // Scroll to button
-                btn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
         }
 
@@ -500,9 +450,23 @@
             const newValue = Math.max(0, current + delta);
             state.lives[key] = newValue;
             
+            // UI Update
             const counterEl = document.getElementById(`count-${key}`);
             if(counterEl) counterEl.innerText = newValue;
+
+            // Visual Highlight Logic
+            const rowEl = document.getElementById(`row-${key}`);
+            if(rowEl) {
+                if(newValue > 0) {
+                    rowEl.classList.add('bg-blue-50', 'border-blue-200');
+                    rowEl.classList.remove('bg-gray-50', 'border-transparent');
+                } else {
+                    rowEl.classList.add('bg-gray-50', 'border-transparent');
+                    rowEl.classList.remove('bg-blue-50', 'border-blue-200');
+                }
+            }
             
+            // Total Calculation
             let total = 0;
             for(let k in state.lives) total += state.lives[k];
             state.totalLives = total;
@@ -510,21 +474,67 @@
             const totalEl = document.getElementById('total-lives');
             if(totalEl) totalEl.innerText = total;
 
-            if(total > 0) {
-                const alertBox = document.getElementById('validation-alert');
-                if(alertBox) alertBox.classList.add('hidden');
-            }
+            // Hide alerts on change
+            const alertBox = document.getElementById('validation-alert');
+            if(alertBox) alertBox.classList.add('hidden');
         }
 
         function validateAndProceedStep3() {
+            // 1. Basic Check: At least 1 life
             if (state.totalLives === 0) {
                  const alertBox = document.getElementById('validation-alert');
                  if(alertBox) {
                     document.getElementById('alert-msg').innerText = 'Adicione pelo menos uma pessoa.';
                     alertBox.classList.remove('hidden');
+                 } else {
+                    showToast('Adicione pelo menos uma pessoa.', 'warning');
                  }
                  return;
             }
+
+            // 2. Child-Only Rule (0-18 only)
+            const lives018 = state.lives['0-18'] || 0;
+            const livesOthers = state.totalLives - lives018;
+
+            if (lives018 > 0 && livesOthers === 0) {
+                // If Profile is PME or Adesao -> Alert and Switch to CPF
+                if (state.profile === 'pme' || state.profile === 'adesao') {
+                    showModal(
+                        'Aviso de Aceitação 2026',
+                        'Para o perfil de crianças (0-18 anos) sem um adulto titular, a contratação em Niterói deve ser feita via CPF (Individual).\n\nAjustaremos seu perfil automaticamente para garantir a emissão do plano.',
+                        () => {
+                            selectProfile('cpf');
+                            nextStep(4);
+                        },
+                        null,
+                        'Entendi, Ajustar Agora',
+                        'Cancelar'
+                    );
+                    return;
+                }
+            }
+
+            // 3. PME Volume Rule (Min 2 lives)
+            if (state.profile === 'pme' && state.totalLives === 1) {
+                showModal(
+                    'Regra de Mínimo de Vidas',
+                    'Para contratar via CNPJ ou MEI em 2026, o mínimo é de 2 vidas.\n\nDeseja adicionar um dependente agora?',
+                    () => {
+                        // User chose to Add Dependent -> Stay here.
+                        // Ideally focus on a + button or just close logic.
+                    },
+                    () => {
+                        // User chose to view for 1 person -> Switch to CPF and Proceed
+                        selectProfile('cpf');
+                        nextStep(4);
+                    },
+                    'Adicionar Dependente',
+                    'Ver tabelas p/ 1 pessoa (CPF)'
+                );
+                return;
+            }
+
+            // All good
             nextStep(4);
         }
 
