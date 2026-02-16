@@ -28,13 +28,7 @@ class PropostaController extends Controller
                 $data['planIds'],
                 $data['lives'],
                 $data['profile'],
-                null, // city arg is not used in getSimulationRawHtml signature yet based on previous view, but let's check. 
-                // Wait, I see getSimulationRawHtml signature in partial view of SimuladorOnlineService.php earlier??
-                // Actually, I should check SimuladorOnlineService.php signature first.
-                // In previous `view_file` of SimuladorOnlineService.php:
-                // public function getSimulationRawHtml(array $planIds, array $lives, string $profile): string
-                // It DOES NOT have city or profession_id yet. I need to update it.
-                // For now, I will pass them assuming I will update the service in the next step.
+                null,
                 $data['profession_id'] ?? null
             );
 
