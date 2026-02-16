@@ -27,6 +27,7 @@ class SearchPlansRequest extends FormRequest
             'hospital' => ['nullable', 'string'],
             'hospitalId' => ['nullable', 'integer'],
             'regiao' => ['nullable', 'integer'],
+            'profession_id' => ['nullable', 'string'],
         ];
     }
 }

@@ -159,6 +159,15 @@ class SimuladorOnlineService
             $formData["simulacao[faixas][{$index}][vidas]"] = $faixa['vidas'] ?? 0;
         }
 
+        $formData['simulacao[corretorEmail]'] = config('services.simulador_online.corretor_email', '');
+        $formData['simulacao[adesao][opes]'] = '';
+        $formData['simulacao[adesao][administradora]'] = '';
+        $formData['simulacao[adesao][entidade]'] = '';
+        
+        // Map Profession ID if available
+        $profId = $validatedInput['profession_id'] ?? '';
+        $formData['simulacao[adesao][profissao]'] = ($profile === 'adesao') ? $profId : '';
+
         $novaPageHtml = $this->client()->get($this->baseUrl.'/simulacao/nova')->body();
         if (preg_match('/name="simulacao\[_token\]"\s+value="([^"]+)"/', $novaPageHtml, $matches)) {
             $formData['simulacao[_token]'] = $matches[1];
@@ -377,7 +386,7 @@ class SimuladorOnlineService
     /**
      * Gera o HTML bruto da simulação para planos específicos.
      */
-    public function getSimulationRawHtml(array $planIds, array $lives, string $profile): string
+    public function getSimulationRawHtml(array $planIds, array $lives, string $profile, ?string $professionId = null): string
     {
         $this->login();
 
@@ -386,6 +395,11 @@ class SimuladorOnlineService
             'adesao' => 4,
             default => 2,
         };
+
+        // If Adesao, ensure tipoTabela is 4
+        if ($profile === 'adesao') {
+            $tipoTabela = 4;
+        }
 
         $totalVidas = array_sum($lives);
         
@@ -431,12 +445,15 @@ class SimuladorOnlineService
         }
 
         $bodyParts[] = rawurlencode('simulacao[textoInicial]').'='.rawurlencode($textoInicial);
-        $bodyParts[] = rawurlencode('simulacao[regiao]').'=2';
+        $bodyParts[] = rawurlencode('simulacao[regiao]').'=2'; // Should be dynamic too, but sticking to request scope
         $bodyParts[] = rawurlencode('simulacao[corretorEmail]').'='.rawurlencode($corretorEmail);
         $bodyParts[] = rawurlencode('simulacao[adesao][opes]').'=';
         $bodyParts[] = rawurlencode('simulacao[adesao][administradora]').'=';
         $bodyParts[] = rawurlencode('simulacao[adesao][entidade]').'=';
-        $bodyParts[] = rawurlencode('simulacao[adesao][profissao]').'=';
+        
+        // Inject Profession ID if Adesao
+        $profValue = ($profile === 'adesao' && $professionId) ? $professionId : '';
+        $bodyParts[] = rawurlencode('simulacao[adesao][profissao]').'='.rawurlencode($profValue);
         
         if ($csrfToken) {
             $bodyParts[] = rawurlencode('simulacao[_token]').'='.rawurlencode($csrfToken);

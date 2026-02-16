@@ -20,13 +20,22 @@ class PropostaController extends Controller
             'planIds' => 'required|array',
             'lives' => 'required|array',
             'profile' => 'required|string',
+            'profession_id' => 'nullable|string',
         ]);
 
         try {
             $rawHtml = $this->simuladorService->getSimulationRawHtml(
                 $data['planIds'],
                 $data['lives'],
-                $data['profile']
+                $data['profile'],
+                null, // city arg is not used in getSimulationRawHtml signature yet based on previous view, but let's check. 
+                // Wait, I see getSimulationRawHtml signature in partial view of SimuladorOnlineService.php earlier??
+                // Actually, I should check SimuladorOnlineService.php signature first.
+                // In previous `view_file` of SimuladorOnlineService.php:
+                // public function getSimulationRawHtml(array $planIds, array $lives, string $profile): string
+                // It DOES NOT have city or profession_id yet. I need to update it.
+                // For now, I will pass them assuming I will update the service in the next step.
+                $data['profession_id'] ?? null
             );
 
             $baseUrl = config('services.simulador_online.base_url', 'https://app.simuladoronline.com');

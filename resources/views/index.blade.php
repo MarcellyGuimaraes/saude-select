@@ -370,10 +370,66 @@
         }
 
         const VALID_PROFESSIONS = [
-            'Administrador', 'Advogado', 'Arquiteto', 'Dentista', 'Economista', 
-            'Enfermeiro', 'Engenheiro', 'Estudante', 'Farmacêutico', 'Fisioterapeuta', 
-            'Jornalista', 'Médico', 'Nutricionista', 'Professor', 'Psicólogo', 
-            'Publicitário', 'Servidor Público', 'Vendedor', 'Veterinário'
+            {id: "200", name: "ACUPUNTURISTAS"}, {id: "193", name: "ADM. EMPRESAS"}, {id: "1", name: "ADMINISTRADOR"}, {id: "2", name: "ADVOGADO"},
+            {id: "300", name: "Aeronauta"}, {id: "112", name: "AEROVIÁRIOS"}, {id: "3", name: "AGRÔNOMO"}, {id: "150", name: "AMBULANTE"},
+            {id: "317", name: "ANALISTAS DE SISTEMAS"}, {id: "198", name: "ANESTESISTAS"}, {id: "352", name: "ANTROPÓLOGO"}, {id: "82", name: "APOSENTADO"},
+            {id: "373", name: "ARQUEÓLOGO"}, {id: "4", name: "ARQUITETO"}, {id: "234", name: "ARQUIVISTAS"}, {id: "249", name: "ARQUIVOLOGIA"},
+            {id: "323", name: "ARRUMADOR"}, {id: "166", name: "ASSISTENTE SOCIAL"}, {id: "376", name: "ASTRÔNOMO"}, {id: "167", name: "ATUÁRIO"},
+            {id: "194", name: "AUDITORES"}, {id: "83", name: "AUTARQUIAS"}, {id: "250", name: "AUTOMAÇÃO INDUSTRIAL"}, {id: "210", name: "AUTÔNOMOS"},
+            {id: "7", name: "AUXILIARES EM ENFERMAGEM"}, {id: "326", name: "BABÁ"}, {id: "127", name: "BACHARÉIS EM DIREITO"}, {id: "154", name: "BIBLIOTECÁRIO"},
+            {id: "251", name: "BIBLIOTECONOMIA"}, {id: "8", name: "BIOLOGO"}, {id: "9", name: "BIOMÉDICO"}, {id: "178", name: "BOMBEIROS"},
+            {id: "353", name: "BOTÂNICO"}, {id: "10", name: "CABELEREIRO"}, {id: "252", name: "CIÊNCIAS AERONÁUTICAS"}, {id: "240", name: "CIÊNCIAS DA COMPUTAÇÃO"},
+            {id: "355", name: "CIENTISTA POLÍTICO"}, {id: "253", name: "CINEMA"}, {id: "11", name: "CIRURGIÃO DENTISTA"}, {id: "341", name: "COMERCIANTE"},
+            {id: "84", name: "COMERCIÁRIO"}, {id: "119", name: "COMÉRCIO EXTERIOR"}, {id: "369", name: "COMUNICAÇÃO SOCIAL"}, {id: "354", name: "COMUNICÓLOGO"},
+            {id: "85", name: "CONTABILISTA"}, {id: "12", name: "CONTADOR"}, {id: "324", name: "COPEIRO"}, {id: "13", name: "CORRETOR DE IMÓVEIS"},
+            {id: "120", name: "CORRETOR DE SEGUROS"}, {id: "205", name: "CUIDADOR DE IDOSO"}, {id: "322", name: "CUIDADOR DE SAÚDE"}, {id: "213", name: "DEFENSOR PÚBLICO"},
+            {id: "248", name: "DENTISTA"}, {id: "14", name: "DENTISTAS"}, {id: "254", name: "DESENHO INDUSTRIAL"}, {id: "298", name: "Designer"},
+            {id: "255", name: "DESIGNER DE INTERIOR"}, {id: "472", name: "DESIGNER DE MODA"}, {id: "15", name: "DESIGNER GRÁFICOS"}, {id: "121", name: "DESPACHANTE"},
+            {id: "315", name: "DESPACHANTE ADUANEIRO"}, {id: "465", name: "DISTRIBUIDOR DE GÁS E PETRÓLEO"}, {id: "374", name: "ECÓLOGO"}, {id: "16", name: "ECONOMISTA"},
+            {id: "191", name: "EDUCAÇÃO FÍSICA"}, {id: "215", name: "EMPREGADO DO COMÉRCIO"}, {id: "204", name: "EMPREGADOS DOMÉSTICOS"}, {id: "378", name: "EMPRESÁRIOS"},
+            {id: "17", name: "EMPRESAS DO COMÉRCIO, INDÚSTRIA E PRESTAÇÃO DE SERVIÇOS"}, {id: "18", name: "ENFERMEIRO"}, {id: "19", name: "ENGENHEIRO"},
+            {id: "20", name: "ESTAGIÁRIO DE DIREITO"}, {id: "124", name: "ESTATÍSTICO"}, {id: "257", name: "ESTATÍSTICOS"}, {id: "132", name: "ESTUDANTE"},
+            {id: "21", name: "ESTUDANTE DE CONTABILIDADE"}, {id: "25", name: "ESTUDANTE DO ENSINO FUNDAMENTAL"}, {id: "192", name: "ESTUDANTE DO ENSINO INFANTIL"},
+            {id: "26", name: "ESTUDANTE DO ENSINO SUPERIOR"}, {id: "28", name: "ESTUDANTES DE ECONOMIA"}, {id: "99", name: "ESTUDANTES SECUNDARISTAS"},
+            {id: "135", name: "ESTUDANTE UNIVERSITÁRIO"}, {id: "358", name: "ETNÓGRAFO E DEMÓGRAFO"}, {id: "29", name: "FARMACÊUTICO"}, {id: "258", name: "FILOSOFIA"},
+            {id: "259", name: "FÍSICO"}, {id: "30", name: "FISIOTERAPEUTA"}, {id: "31", name: "FONOAUDIÓLOGO"}, {id: "260", name: "FOTOGRAFIA"},
+            {id: "177", name: "FUNCIONÁRIO DO COMÉRCIO"}, {id: "153", name: "FUNCIONÁRIO PÚBLICO"}, {id: "32", name: "FUNCIONÁRIO PÚBLICO ESTADUAL"},
+            {id: "33", name: "FUNCIONÁRIO PÚBLICO FEDERAL"}, {id: "34", name: "FUNCIONÁRIO PÚBLICO MUNICIPAL"},
+            {id: "413", name: "FUNCIONÁRIOS DA ECT (EMPRESA BRASILEIRA DE CORREIOS E TELÉGRAFOS)"}, {id: "35", name: "FUNCIONÁRIOS DO COMÉRCIO"},
+            {id: "207", name: "FUNCIONÁRIOS E EMPRESÁRIOS DO COMÉRCIO"}, {id: "261", name: "GASTRONOMIA"}, {id: "359", name: "GEOFÍSICO"}, {id: "262", name: "GEOGRAFIA"},
+            {id: "36", name: "GEÓGRAFO"}, {id: "263", name: "GEOLOGIA"}, {id: "37", name: "GEÓLOGO"}, {id: "183", name: "GEÓLOGOS"}, {id: "264", name: "GESTÃO AMBIENTAL"},
+            {id: "265", name: "GESTÃO COMERCIAL"}, {id: "266", name: "GESTÃO DA TECNOLOGIA DA INFORMAÇÃO"}, {id: "267", name: "GESTÃO DE RECURSOS HUMANOS"},
+            {id: "268", name: "GESTÃO DE SEGURANÇA PRIVADA"}, {id: "269", name: "GESTÃO DE SEGUROS"}, {id: "270", name: "GESTÃO DE TURISMO"},
+            {id: "271", name: "GESTÃO FINANCEIRA"}, {id: "272", name: "GESTÃO HOSPITALAR E PÚBLICA"}, {id: "327", name: "GOVERNANTA"}, {id: "273", name: "HISTÓRIA"},
+            {id: "231", name: "HISTORIADORES"}, {id: "274", name: "HOTELARIA"}, {id: "187", name: "INDÚSTRIA"}, {id: "366", name: "INTERPRETE"}, {id: "325", name: "JARDINEIRO"},
+            {id: "38", name: "JORNALISTA"}, {id: "102", name: "JUIZ FEDERAL"}, {id: "286", name: "LETRAS"}, {id: "287", name: "LOGISTICA"}, {id: "39", name: "LOJISTA"},
+            {id: "103", name: "MAGISTRADOS"}, {id: "104", name: "MAGISTRADOS DA JUSTIÇA DO TRABALHO"}, {id: "243", name: "MARKETING"}, {id: "288", name: "MATEMÁTICA"},
+            {id: "40", name: "MÉDICO"}, {id: "289", name: "MÉDICOS"}, {id: "41", name: "METEOROLOGISTA"}, {id: "211", name: "MICROEMPREENDEDORES INDIVIDUAIS"},
+            {id: "42", name: "MICRO. E PEQUENO EMPRESÁRIO"}, {id: "43", name: "MILITAR"}, {id: "238", name: "MILITARES E SERVIDORES CIVIS DA MARINHA DO BRASIL"},
+            {id: "329", name: "MORDOMO"}, {id: "328", name: "MOTORISTA"}, {id: "316", name: "MOTORISTA DE APLICATIVO"}, {id: "232", name: "MUSEÓLOGOS"},
+            {id: "44", name: "MÚSICO"}, {id: "294", name: "NEGÓCIOS IMOBILIÁRIOS"}, {id: "45", name: "NUTRICIONISTA"}, {id: "46", name: "ODONTOLOGISTA"},
+            {id: "47", name: "PEDAGOGO"}, {id: "462", name: "PENSIONISTAS"}, {id: "467", name: "POLICIAL PENAL"}, {id: "49", name: "PÓS-GRADUANDO"},
+            {id: "50", name: "PRESTADOR DE SERVIÇOS"}, {id: "51", name: "PRESTADOR DE SERVIÇOS NA ÁREA DE SISTEMA DE INFORMÁTICA"}, {id: "105", name: "PROCURADOR DA REPÚBLICA"},
+            {id: "106", name: "PROCURADOR DO TRABALHO"}, {id: "54", name: "PROFESSOR"}, {id: "55", name: "PROFESSORES DO ENSINO OFICIAL"},
+            {id: "56", name: "PROFESSORES DO ENSINO PARTICULAR"}, {id: "396", name: "PROFISSIONAIS EM ÓRGÃOS PÚBLICOS E PRIVADOS"}, {id: "435", name: "PROFISSIONAL DA EDUCAÇÃO"},
+            {id: "220", name: "PROFISSIONAL DA INDÚSTRIA"}, {id: "285", name: "PROFISSIONAL DA INFORMÁTICA"}, {id: "59", name: "PROFISSIONAL DE BIOMEDICINA"},
+            {id: "60", name: "PROFISSIONAL DE EDUCAÇÃO FÍSICA"}, {id: "217", name: "PROFISSIONAL DE ESTÉTICA"}, {id: "96", name: "PROFISSIONAL DE RELAÇOES PÚBLICAS"},
+            {id: "470", name: "PROFISSIONAL DO AGRONEGÓCIO"}, {id: "434", name: "PROFISSIONAL DO COMÉRCIO"}, {id: "62", name: "PROFISSIONAL DO COMÉRCIO/SERVIÇOS"},
+            {id: "168", name: "PROFISSIONAL LIBERAL"}, {id: "466", name: "PROFISSIONAL LIBERAL E EMPREENDEDOR"}, {id: "97", name: "PROFISSIONAL, MICRO PEQUENA EMPRESA"},
+            {id: "63", name: "PROFISSIONAL REGISTRADO NO CREA"}, {id: "469", name: "PROFISSIONAL RURAL"}, {id: "199", name: "PROTÉTICOS"}, {id: "64", name: "PSICÓLOGO"},
+            {id: "310", name: "PSICOPEDAGOGO"}, {id: "415", name: "PSICOTERAPEUTA"}, {id: "242", name: "PUBLICIDADE E PROPAGANDA"}, {id: "65", name: "PUBLICITÁRIO"},
+            {id: "290", name: "QUÍMICA"}, {id: "66", name: "QUÍMICO"}, {id: "275", name: "RADIOLOGIA"}, {id: "244", name: "RECURSOS HUMANOS"},
+            {id: "276", name: "RELAÇÕES INTERNACIONAIS"}, {id: "67", name: "RELAÇOES PÚBLICAS"}, {id: "377", name: "REPÓRTER"}, {id: "68", name: "REPRESENTANTE COMERCIAL"},
+            {id: "212", name: "REPRESENTANTES COMERCIAIS"}, {id: "464", name: "REVENDEDOR DE GÁS E PETRÓLEO"}, {id: "277", name: "SECRETARIADO"},
+            {id: "278", name: "SEGURANÇA NO TRABALHO"}, {id: "436", name: "SERVIDORES DA DATAPREV"}, {id: "109", name: "SERVIDOR PÚBLICO"},
+            {id: "72", name: "SERVIDOR PÚBLICO, ATIVOS OU INATIVOS"}, {id: "431", name: "SERVIDOR PÚBLICO CIVIL"}, {id: "69", name: "SERVIDOR PÚBLICO ESTADUAL"},
+            {id: "70", name: "SERVIDOR PÚBLICO FEDERAL"}, {id: "221", name: "SERVIDOR PÚBLICO - MAG. DA JUSTIÇA DO TRABALHO"}, {id: "432", name: "SERVIDOR PÚBLICO MILITAR"},
+            {id: "71", name: "SERVIDOR PÚBLICO MUNICIPAL"}, {id: "279", name: "SOCIOLOGIA"}, {id: "73", name: "SOCIÓLOGO"}, {id: "439", name: "TÉCNICO EM ADMINISTRAÇÃO"},
+            {id: "75", name: "TÉCNICO EM CONTABILIDADE"}, {id: "76", name: "TÉCNICO EM ENFERMAGEM"}, {id: "280", name: "TÉCNICOS CONTABILISTAS"},
+            {id: "281", name: "TÉCNICOS DE ENFERMAGEM"}, {id: "282", name: "TÉCNICOS EM LABORATÓRIOS"}, {id: "247", name: "TECNOLOGIA DA INFORMAÇÃO"},
+            {id: "136", name: "TECNÓLOGO"}, {id: "284", name: "TEÓLOGOS"}, {id: "80", name: "TERAPEUTAS OCUPACIONAL"}, {id: "170", name: "TRABALHADORES COOPERADOS"},
+            {id: "319", name: "TRABALHADORES DO PETRÓLEO E GÁS"}, {id: "123", name: "TRADUTOR"}, {id: "241", name: "TURISMO"}, {id: "139", name: "URBANISTA"},
+            {id: "149", name: "VENDEDOR AUTÔNOMO"}, {id: "81", name: "VETERINÁRIO"}, {id: "367", name: "ZOÓLOGOS"}, {id: "368", name: "ZOOTECNISTAS"}
         ];
 
         let profDebounce;
@@ -460,14 +516,14 @@
             profDebounce = setTimeout(() => {
                 if(loading) loading.classList.add('hidden');
                 
-                // Filter Valid Professions
-                const matches = VALID_PROFESSIONS.filter(p => p.toLowerCase().includes(query.toLowerCase()));
+                // Filter Valid Professions by Name
+                const matches = VALID_PROFESSIONS.filter(p => p.name.toLowerCase().includes(query.toLowerCase()));
                 
                 if (matches.length > 0) {
                     suggestions.innerHTML = matches.map(p => `
                         <div class="p-3 hover:bg-gray-100 cursor-pointer border-b last:border-0 text-sm text-gray-700" 
-                             onclick="selectProfissao('${p}')">
-                            <i class="fas fa-user-tie mr-2 text-gray-400"></i> ${p}
+                             onclick="selectProfissao('${p.name}', '${p.id}')">
+                            <i class="fas fa-user-tie mr-2 text-gray-400"></i> ${p.name}
                         </div>
                     `).join('');
                     suggestions.classList.remove('hidden');
@@ -483,14 +539,16 @@
             }, 300);
         }
 
-        function selectProfissao(prof) {
+        function selectProfissao(profName, profId) {
             const input = document.getElementById('prof-search');
             const suggestions = document.getElementById('prof-suggestions');
             const btnContinue = document.getElementById('btn-step-2-next');
 
-            if(input) input.value = prof;
+            if(input) input.value = profName;
             if(suggestions) suggestions.classList.add('hidden');
-            state.profession = prof;
+            
+            state.profession = profName;
+            state.professionId = profId; // Store Profession ID
             
             if(btnContinue) {
                 btnContinue.classList.remove('hidden');
@@ -834,7 +892,8 @@
                         profile: state.profile,
                         lives: state.lives,
                         hospitalId: state.hospitalId,
-                        regiao: state.regionId
+                        regiao: state.regionId,
+                        profession_id: state.professionId || null
                     })
                 });
 
@@ -1227,7 +1286,8 @@
                     body: JSON.stringify({
                         planIds: state.selectedPlans,
                         lives: state.lives,
-                        profile: state.profile
+                        profile: state.profile,
+                        profession_id: state.professionId || null
                     })
                 });
 
