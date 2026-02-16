@@ -21,6 +21,7 @@ class PropostaController extends Controller
             'lives' => 'required|array',
             'profile' => 'required|string',
             'profession_id' => 'nullable|string',
+            'hospital' => 'nullable|string', // Hospital name for elective check
         ]);
 
         try {
@@ -36,7 +37,7 @@ class PropostaController extends Controller
             $systemHtml = SimuladorOnlineService::extractProposalContent($rawHtml, $baseUrl);
             $clientHtml = SimuladorOnlineService::extractClientProposalContent($rawHtml, $baseUrl);
 
-            $plansWithoutInternacao = SimuladorOnlineService::identifyPlansWithoutInternacao($clientHtml);
+            $plansWithoutInternacao = SimuladorOnlineService::identifyPlansWithoutInternacao($clientHtml, $data['hospital'] ?? null);
 
             session(['simulacao_atual' => [
                     'planIds' => $data['planIds'],

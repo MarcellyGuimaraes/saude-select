@@ -497,7 +497,7 @@ class SimuladorOnlineService
     /**
      * Analisa o HTML do cliente e identifica planos que não possuem "H" (internação eletiva) na rede credenciada.
      */
-    public static function identifyPlansWithoutInternacao(string $cleanHtml): array
+    public static function identifyPlansWithoutInternacao(string $cleanHtml, ?string $targetHospital = null): array
     {
         $dom = new DOMDocument();
         libxml_use_internal_errors(true);
@@ -509,27 +509,64 @@ class SimuladorOnlineService
 
         foreach ($xpath->query('//div[contains(@class,"operadora")]') as $operadora) {
             /** @var \DOMElement $operadora */
-            // Busca o nome do plano/operadora de forma mais flexível
+            // Busca o nome do plano/operadora
             $nomeOperadora = trim($xpath->query('.//p[contains(@class, "fz-12")]', $operadora)->item(0)?->textContent ?? '');
             if (!$nomeOperadora) {
                $nomeOperadora = trim($xpath->query('.//div[contains(@class, "logotipo")]/p', $operadora)->item(0)?->textContent ?? 'Plano Desconhecido');
             }
             
             $hasH = false;
+            $hospitalFound = false;
+
             foreach ($xpath->query('.//div[contains(@class,"bloco")]', $operadora) as $bloco) {
                 /** @var \DOMElement $bloco */
                 $h4 = $xpath->query('.//h4', $bloco)->item(0);
+                
+                // Verifica bloco de Rede Credenciada
                 if ($h4 && trim($h4->textContent) === 'Rede Credenciada') {
-                    // Verifica se existe " - H" ou " -H" no texto, garantindo que seja um código isolado
-                    if (preg_match('/\s-\s*H\b/', $bloco->textContent)) {
-                        $hasH = true;
+                    $textoBloco = $bloco->textContent;
+
+                    if ($targetHospital) {
+                        // Lógica para Hospital Específico
+                        // Verifica se o hospital alvo está neste bloco (case-insensitive)
+                        if (mb_stripos($textoBloco, $targetHospital) !== false) {
+                            $hospitalFound = true;
+                            // Se achou o hospital, verifica se ELE tem " - H"
+                            // A verificação ideal seria isolar a linha do hospital, mas como é um bloco de texto,
+                            // vamos assumir que se o hospital está lá, a flag " - H" deve estar associada.
+                            // Porem, a regra pedida é: se tiver o hospital, checar se tem internação.
+                            // Se o texto "Hospital X ... - H" estiver presente.
+                            // Simplificação robusta: Se achou o hospital, verifica se " - H" existe no bloco GERAL ou se está perto.
+                            // Dado a estrutura do HTML, vamos verificar se " - H" existe no bloco onde o hospital foi achado.
+                            if (preg_match('/\s-\s*H\b/', $textoBloco)) {
+                                $hasH = true;
+                            }
+                        }
+                    } else {
+                        // Lógica Genérica (sem hospital alvo)
+                        if (preg_match('/\s-\s*H\b/', $textoBloco)) {
+                            $hasH = true;
+                        }
                     }
-                    break;
+                    // Se já achou rede credenciada, break (geralmente só tem um bloco de rede)
+                    // Mas cuidado, pode ter mais de um bloco se a lista for longa? Geralmente não.
+                    break; 
                 }
             }
 
-            if (!$hasH) {
-                $plansWithoutInternacao[] = $nomeOperadora;
+            if ($targetHospital) {
+                // Se busca hospital específico:
+                // Só é válido se encontrou o hospital E ele tem internação.
+                // Se não encontrou o hospital -> Flag (Falta rede)
+                // Se encontrou mas não tem H -> Flag (Sem internação eletiva)
+                if (!$hospitalFound || !$hasH) {
+                    $plansWithoutInternacao[] = $nomeOperadora;
+                }
+            } else {
+                // Busca genérica
+                if (!$hasH) {
+                    $plansWithoutInternacao[] = $nomeOperadora;
+                }
             }
         }
 
