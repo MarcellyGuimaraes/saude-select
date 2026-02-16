@@ -620,7 +620,7 @@
                 if (state.profile === 'pme' || state.profile === 'adesao') {
                     showModal(
                         'Aviso de Aceitação 2026',
-                        'Para o perfil de crianças (0-18 anos) sem um adulto titular, a contratação em Niterói deve ser feita via CPF (Individual).\n\nAjustaremos seu perfil automaticamente para garantir a emissão do plano.',
+                        'Para o perfil de crianças (0-18 anos) sem um adulto titular, a contratação em ' + state.city + ' deve ser feita via CPF (Individual).\n\nAjustaremos seu perfil automaticamente para garantir a emissão do plano.',
                         () => {
                             selectProfile('cpf');
                             nextStep(4);
