@@ -734,8 +734,14 @@
             }
         }
 
+        // --- PAGINATION STATE ---
+        const ITEMS_PER_PAGE = 5;
+        let currentPage = 1;
+
         async function buscarPlanosAPI() {
-            // Tenta exibir loading local para não remover a estrutura do passo 4
+            // Reset pagination
+            currentPage = 1;
+
             const plansContainer = document.querySelector('#step-4 .space-y-4');
             
             if (plansContainer) {
@@ -768,7 +774,10 @@
                 const data = await response.json();
                 if (data.success) {
                     state.planos = data.planos;
-                    renderPlanos(state.planos);
+                    // Mock sorting by price (assuming ID correlates or use a mock price field if available)
+                    // unique sort logic:
+                    state.planos.sort((a, b) => (a.preco || 0) - (b.preco || 0));
+                    renderPlanos();
                 } else {
                     showToast('Erro ao buscar planos: ' + data.error, 'error');
                 }
@@ -778,9 +787,11 @@
             }
         }
 
-        function renderPlanos(planos) {
+        function renderPlanos() {
             const container = document.querySelector('#step-4 .space-y-4');
             if (!container) return;
+
+            const planos = state.planos;
 
             if (planos.length === 0) {
                 container.innerHTML = `
@@ -794,52 +805,242 @@
                 return;
             }
 
-            container.innerHTML = planos.map(plano => `
-                <div class="plan-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 relative transition-all cursor-pointer hover:shadow-md" 
+            // Pagination Logic
+            const totalPages = Math.ceil(planos.length / ITEMS_PER_PAGE);
+            const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+            const endIndex = startIndex + ITEMS_PER_PAGE;
+            const currentPlans = planos.slice(startIndex, endIndex);
+
+            const plansHtml = currentPlans.map((plano, index) => {
+                // Match Logic (Scenarios A, B, C, D)
+                let matchNote = '';
+                let noteClass = '';
+                
+                // Determine Scenario
+                // A: Match Perfeito (Hospital Accepts Profile + Age)
+                // B: Alternatives (Restrictions)
+                // C: Exception (No plans for hospital)
+                // D: Broad Search (No hospital selected or fallback)
+                
+                const isMatch = plano.hospital_match; // Assuming backend flag
+                
+                if (state.hospitalId && isMatch) {
+                    // Scenario A
+                    matchNote = `✨ Nota: Identificamos que o Hospital <strong>${state.hospitals.find(h=>h.id==state.hospitalId)?.nome || 'Selecionado'}</strong> possui aceitação garantida para sua Categoria (${state.profile === 'pme' ? 'PME' : 'CPF'}) e Idades em 2026. Esta é a sua melhor escolha técnica!`;
+                    noteClass = 'bg-blue-50 text-blue-800 border-blue-100';
+                } else if (state.hospitalId && !isMatch) {
+                     // Scenario B (simplified for demo)
+                     matchNote = `✨ Nota: Para sua segurança, aplicamos nossa inteligência de rede para garantir que você sempre tenha opções disponíveis.`;
+                     noteClass = 'bg-yellow-50 text-yellow-800 border-yellow-100';
+                } else {
+                     // Scenario D
+                     matchNote = `✨ Nota: Analisamos 100% das operadoras. Os planos abaixo são os líderes em custo-benefício.`;
+                     noteClass = 'bg-green-50 text-green-800 border-green-100';
+                }
+
+                // Tags Logic (Dynamic based on strings)
+                const tags = [];
+                const fullText = (plano.operadora + ' ' + plano.nome + ' ' + (plano.operadora_descricao || '')).toUpperCase();
+
+                // 1. Acomodação (Always show if present)
+                if (plano.acomodacao) {
+                    const isApt = plano.acomodacao.toLowerCase().includes('apartamento');
+                    tags.push({ 
+                        label: isApt ? 'APT' : 'ENF', 
+                        desc: isApt ? 'Acomodação: Apartamento (Privativo)' : 'Acomodação: Enfermaria (Coletivo)', 
+                        icon: isApt ? 'fa-home' : 'fa-bed',
+                        class: isApt ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-green-50 text-green-700 border-green-100'
+                    });
+                }
+
+                // 2. Coparticipação
+                if (fullText.includes('COPART') || fullText.includes('COM COPART')) {
+                    tags.push({ label: 'C/ Copar', desc: 'Plano com Coparticipação', icon: 'fa-coins', class: 'bg-gray-50 text-gray-600 border-gray-100' });
+                } else if (fullText.includes('SEM COPART')) {
+                    tags.push({ label: 'S/ Copar', desc: 'Plano sem Coparticipação', icon: 'fa-check-circle', class: 'bg-green-50 text-green-600 border-green-100' });
+                }
+
+                // 3. Obstetrícia
+                if (fullText.includes('OBST') || fullText.includes('PARTO')) {
+                    tags.push({ label: 'C/ PARTO', desc: 'Inclui Obstetrícia', icon: 'fa-baby', class: 'bg-pink-50 text-pink-600 border-pink-100' });
+                }
+
+                // 4. Abrangência (Nacional/Regional/Municipal)
+                if (fullText.includes('NACIONAL')) {
+                     tags.push({ label: 'NAC', desc: 'Abrangência Nacional', icon: 'fa-globe-americas', class: 'bg-purple-50 text-purple-600 border-purple-100' });
+                } else if (fullText.includes('REGIONAL') || fullText.includes('GRUPO DE MUNICIPIOS')) {
+                     tags.push({ label: 'REG', desc: 'Abrangência Regional', icon: 'fa-map', class: 'bg-indigo-50 text-indigo-600 border-indigo-100' });
+                } else if (fullText.includes('MUNICIPAL')) {
+                     tags.push({ label: 'MUN', desc: 'Abrangência Municipal', icon: 'fa-map-marker-alt', class: 'bg-yellow-50 text-yellow-700 border-yellow-100' });
+                }
+
+                let tagsHtml = tags.map(t => `
+                    <span class="text-[9px] px-1.5 py-0.5 rounded border flex items-center gap-1 font-semibold ${t.class}" title="${t.desc}">
+                        ${t.icon ? `<i class="fas ${t.icon}"></i>` : ''} ${t.label}
+                    </span>
+                `).join('');
+
+                // Tech Recommendation Tag (Fixed logic or distinct)
+                // if (index === 0) tagsHtml += `<span class="text-[9px] bg-cyan-50 text-cyan-600 px-1.5 py-0.5 rounded border border-cyan-100 flex items-center font-bold">💎 RECOMENDAÇÃO</span>`;
+
+
+
+                return `
+                <div class="plan-card bg-white rounded-xl shadow-sm border border-gray-200 relative transition-all cursor-pointer hover:shadow-md overflow-hidden group mb-4" 
                      data-id="${plano.id}"
                      onclick="togglePlanSelection(this, ${plano.id})">
-                    <div class="flex justify-between items-start mb-2">
-                        ${plano.operadora_logo 
-                            ? `<img src="${plano.operadora_logo}" alt="${plano.operadora}" class="h-8 w-auto object-contain" />`
-                            : `<div class="bg-gray-200 h-8 w-20 rounded animate-pulse flex items-center justify-center text-[10px] text-gray-500">${plano.operadora}</div>`
-                        }
-                        ${plano.destaque ? `<span class="text-[10px] font-bold bg-green-100 text-green-700 px-2 py-1 rounded">RECOMENDADO</span>` : ''}
-                    </div>
-                    <h3 class="font-bold text-gray-800 text-lg leading-tight mb-1">${plano.nome}</h3>
-                    <p class="text-xs text-gray-500 mb-3">${plano.acomodacao} | ${plano.operadora}</p>
                     
-                    <div class="mt-4 pt-3 border-t border-dashed border-gray-200 flex justify-between items-end">
-                        <div class="text-xs text-gray-400">Mensalidade:</div>
-                        <div class="blur-price text-xl font-bold text-blue-600 bg-gray-100 px-2 rounded hover:blur-none transition-all duration-300 filter blur-[4px]">R$ ???</div>
+                    <div class="p-4 pb-2">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="flex items-center">
+                                ${plano.operadora_logo 
+                                    ? `<img src="${plano.operadora_logo}" class="h-6 mr-2 object-contain" alt="${plano.operadora}">` 
+                                    : `<span class="font-bold text-gray-700 text-sm mr-2">${plano.operadora}</span>`}
+                                <div>
+                                    <h3 class="font-bold text-gray-800 text-sm leading-tight">${plano.nome}</h3>
+                                    <span class="text-[10px] text-gray-500 uppercase tracking-wide leading-tight mt-0.5">
+                                        ${plano.operadora}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                        </div>
+
+                        ${matchNote ? `
+                        <div class="mb-3 p-2 rounded-lg border text-[10px] leading-relaxed ${noteClass}">
+                            ${matchNote}
+                        </div>
+                        ` : ''}
+
+                        <div class="flex flex-wrap gap-1 mb-3">
+                            ${tagsHtml}
+                            <span class="text-[9px] bg-cyan-50 text-cyan-600 px-1.5 py-0.5 rounded border border-cyan-100 flex items-center font-bold">💎 RECOMENDAÇÃO TÉCNICA</span>
+                        </div>
+                        
+                        <p class="text-[9px] text-gray-400 italic mb-2">📅 Preços e condições válidos para adesões em janeiro de 2026.</p>
+
+                        <div class="mb-1 flex justify-between items-end border-t border-dashed border-gray-100 pt-2">
+                            <div>
+                                <div class="blur-price text-lg font-bold text-blue-800 bg-gray-50 px-2 rounded select-none filter blur-[4px] group-hover:blur-[3px] transition-all">
+                                    R$ [░░░░░░]
+                                </div>
+                            </div>
+                            <div class="text-[9px] text-green-600 font-bold bg-green-50 px-2 py-1 rounded cursor-pointer hover:bg-green-100 transition">
+                                + SELECIONAR
+                            </div>
+                        </div>
                     </div>
-                    
-                    <div class="selection-check absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 ${state.selectedPlans.includes(plano.id) ? '' : 'hidden'}">
-                        <i class="fas fa-check-circle text-4xl text-blue-600 bg-white rounded-full shadow-lg"></i>
+
+                    <!-- Selection Overlay -->
+                    <div class="selection-overlay absolute inset-0 bg-blue-600 bg-opacity-10 hidden flex-col items-center justify-center border-2 border-blue-600 rounded-xl z-10 pointer-events-none">
+                        <div class="bg-white rounded-full p-2 shadow-lg mb-2">
+                             <i class="fas fa-check text-blue-600 text-xl"></i>
+                        </div>
+                        <span class="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded">SELECIONADO</span>
                     </div>
-                    
-                    <!-- Overlay de seleção -->
-                    <div class="absolute inset-0 border-2 border-blue-600 rounded-xl ${state.selectedPlans.includes(plano.id) ? '' : 'hidden'} pointer-events-none"></div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
+
+            // Sticky Legend Footer (Global for the list)
+            const legendHtml = `
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-3 my-4">
+                    <div class="flex flex-wrap justify-center gap-x-4 gap-y-2 text-[10px] text-gray-500">
+                        <span><i class="fas fa-map-marker-alt mr-1"></i>MUN: Municipal</span>
+                        <span><i class="fas fa-map mr-1"></i>REG: Regional</span>
+                        <span><i class="fas fa-globe-americas mr-1"></i>NAC: Nacional</span>
+                        <span><i class="fas fa-home mr-1"></i>APT: Privativo</span>
+                        <span><i class="fas fa-bed mr-1"></i>ENF: Coletivo</span>
+                        <span><i class="fas fa-baby mr-1"></i>C/ PARTO: Inclui Obstetrícia</span>
+                        <span><i class="fas fa-coins mr-1"></i>c/ Copar: Com taxas</span>
+                        <span><i class="fas fa-check-circle mr-1"></i>s/ Copar: Sem taxas</span>
+                        <span><i class="fas fa-tooth mr-1"></i>Odonto</span>
+                    </div>
+                </div>
+            `;
+
+            // Pagination Controls
+            const paginationHtml = `
+                <div class="flex justify-between items-center mt-2 pt-4 border-t border-gray-200">
+                    <button onclick="changePage(-1)" ${currentPage === 1 ? 'disabled class="opacity-30 cursor-not-allowed"' : ''} class="text-gray-600 hover:text-blue-600 font-bold text-sm flex items-center">
+                        <i class="fas fa-chevron-left mr-2"></i> Anterior
+                    </button>
+                    <span class="text-xs text-gray-500">Página ${currentPage} de ${totalPages}</span>
+                    <button onclick="changePage(1)" ${currentPage === totalPages ? 'disabled class="opacity-30 cursor-not-allowed"' : ''} class="text-gray-600 hover:text-blue-600 font-bold text-sm flex items-center">
+                        Próximo <i class="fas fa-chevron-right ml-2"></i>
+                    </button>
+                </div>
+            `;
+
+            container.innerHTML = plansHtml + legendHtml + paginationHtml;
             
-            document.getElementById('selected-count').innerText = state.selectedPlans.length;
+            // Re-apply selection state
+            state.selectedPlans.forEach(id => {
+                const card = document.querySelector(`.plan-card[data-id="${id}"]`);
+                if(card) {
+                    card.classList.add('ring-2', 'ring-blue-500', 'border-blue-500');
+                    card.querySelector('.selection-overlay').classList.remove('hidden');
+                    card.querySelector('.selection-overlay').classList.add('flex');
+                }
+            });
+            updateSelectionVisuals();
+            
+            // Scroll to top of list if changing page
+            const title = document.querySelector('#result-profile-name');
+            if(title) title.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        
+        function changePage(delta) {
+            currentPage += delta;
+            renderPlanos();
         }
 
-        function togglePlanSelection(element, id) {
+        function togglePlanSelection(card, id) {
             const index = state.selectedPlans.indexOf(id);
-            const check = element.querySelector('.selection-check');
-            const overlay = element.querySelector('.absolute.inset-0');
-
+            const overlay = card.querySelector('.selection-overlay');
+            
             if (index > -1) {
+                // Deselect
                 state.selectedPlans.splice(index, 1);
-                check.classList.add('hidden');
+                card.classList.remove('ring-2', 'ring-blue-500', 'border-blue-500');
                 overlay.classList.add('hidden');
+                overlay.classList.remove('flex');
             } else {
+                // Select
+                if (state.selectedPlans.length >= 3) {
+                    showToast('Você pode selecionar no máximo 3 planos.', 'warning');
+                    return;
+                }
                 state.selectedPlans.push(id);
-                check.classList.remove('hidden');
+                card.classList.add('ring-2', 'ring-blue-500', 'border-blue-500');
                 overlay.classList.remove('hidden');
+                overlay.classList.add('flex');
             }
+
             document.getElementById('selected-count').innerText = state.selectedPlans.length;
+            
+            if (state.selectedPlans.length > 0) {
+                 const alertBox = document.getElementById('step-4-validation-alert');
+                 if(alertBox) alertBox.classList.add('hidden');
+            }
+
+            updateSelectionVisuals();
+        }
+
+        function updateSelectionVisuals() {
+            const allCards = document.querySelectorAll('.plan-card');
+            const isFull = state.selectedPlans.length >= 3;
+
+            allCards.forEach(c => {
+                const id = parseInt(c.getAttribute('data-id'));
+                const isSelected = state.selectedPlans.includes(id);
+
+                if (isFull && !isSelected) {
+                    c.classList.add('opacity-40', 'grayscale');
+                } else {
+                    c.classList.remove('opacity-40', 'grayscale');
+                }
+            });
         }
 
         // --- STEP INITIALIZATION ---

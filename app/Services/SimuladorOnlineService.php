@@ -121,7 +121,7 @@ class SimuladorOnlineService
         $payload = [
             'tipoTabela' => $tipoTabela,
             'totalVidas' => $totalVidas,
-            'regiao' => self::DefaultRegionId,
+            'regiao' => $validatedInput['regiao'] ?? self::DefaultRegionId,
             'faixas' => $faixas,
         ];
         $hospitalId = $validatedInput['hospitalId'] ?? null;
