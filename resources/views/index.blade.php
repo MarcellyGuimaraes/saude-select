@@ -960,8 +960,8 @@
                      noteClass = 'bg-yellow-50 text-yellow-800 border-yellow-100';
                 } else {
                      // Scenario D
-                     matchNote = `✨ Nota: Analisamos 100% das operadoras. Os planos abaixo são os líderes em custo-benefício.`;
-                     noteClass = 'bg-green-50 text-green-800 border-green-100';
+                     matchNote = ``;
+                     noteClass = 'hidden';
                 }
 
                 // Tags Logic (Dynamic based on strings)
