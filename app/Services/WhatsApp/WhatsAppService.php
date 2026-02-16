@@ -72,6 +72,61 @@ class WhatsAppService
     }
 
     /**
+     * Send a text message to a phone number using Uazapi.
+     * 
+     * @param string $phone
+     * @param string $message
+     * @return array
+     */
+    public function sendText(string $phone, string $message): array
+    {
+        $baseUrl = config('services.uazapi.base_url', env('UAZAPI_BASE_URL'));
+        $token = config('services.uazapi.token', env('UAZAPI_TOKEN'));
+
+        if (!$baseUrl || !$token) {
+            Log::warning("WhatsAppService: Uazapi keys not configured.");
+            return ['success' => false, 'error' => 'Configuration missing'];
+        }
+
+        // Format phone
+        $phone = preg_replace('/\D/', '', $phone);
+        if (strlen($phone) < 12) {
+            $phone = '55' . $phone;
+        }
+
+        $endpoint = rtrim($baseUrl, '/') . '/send/text';
+
+        try {
+            $response = Http::withoutVerifying()->withHeaders([
+                'token' => $token,
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json'
+            ])->post($endpoint, [
+                'number' => $phone,
+                'text' => $message,
+                'type' => 'text'
+            ]);
+
+            $body = $response->json() ?? $response->body();
+
+            if ($response->successful()) {
+                Log::info("WhatsAppService: Sent text to {$phone}", ['response' => $body]);
+                return ['success' => true, 'response' => $body];
+            }
+            else {
+                Log::error("WhatsAppService: Failed to send text. Status: " . $response->status(), [
+                    'body' => $body
+                ]);
+                return ['success' => false, 'response' => $body, 'status' => $response->status()];
+            }
+        }
+        catch (\Throwable $e) {
+            Log::error("WhatsAppService: Exception sending text: " . $e->getMessage());
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
      * Generate a WhatsApp Click-to-Chat link with a pre-filled message.
      * This is a fallback if direct sending is not configured.
      * 

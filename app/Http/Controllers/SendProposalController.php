@@ -39,18 +39,56 @@ class SendProposalController extends Controller
             $pdfSystemContent = $this->pdfService->generateSystemPdf($systemHtml);
             $pdfClientContent = $this->pdfService->generateClientPdf($clientHtml);
 
-            // 2. Send Email to Admin/System
-            // 2. Send Email to Admin/System
+            // 2. Send Email to Admin/System (Backup)
             $clientPhone = $request->input('phone');
             $adminEmail = 'renanldb93@gmail.com';
             Mail::to($adminEmail)->send(new \App\Mail\ProposalSystemMail($pdfSystemContent, 'proposta-sistema.pdf', $clientPhone));
 
-            // 3. Send WhatsApp to Client (or prepared logic)
-            // Expecting phone in request or session (if collected)
-
+            // 3. WhatsApp Automation Flow
             $apiResult = ['success' => false];
+
             if ($clientPhone) {
                 $apiResult = $this->whatsappService->sendPdf($clientPhone, $pdfClientContent, 'proposta-plano.pdf');
+
+                // Action 3: Send Follow-up Message to Client
+                $msgClient = "O Dossiê SaúdeSelect 2026 solicitado já está disponível acima. 📄\n\n" .
+                    "Este documento apresenta o detalhamento técnico da seleção realizada, com os respectivos valores e especificações de rede.\n\n" .
+                    "A equipe de suporte analisará os critérios de aceitação para o perfil informado e entrará em contato para validar o match técnico, além de esclarecer eventuais dúvidas sobre carências ou procedimentos de adesão.\n\n" .
+                    "Agradecemos por utilizar a inteligência da SaúdeSelect. 🚀";
+
+                $this->whatsappService->sendText($clientPhone, $msgClient);
+
+                // Action 4: Broker Alert (Inteligência Pós-Clique)
+                // Gather Data
+                $profile = ucfirst($data['profile'] ?? 'N/A');
+                $livesCount = 0;
+                if (isset($data['lives']) && is_array($data['lives'])) {
+                    foreach ($data['lives'] as $qtd) {
+                        if (is_numeric($qtd)) {
+                            $livesCount += $qtd;
+                        }
+                    }
+                }
+                $city = $data['city'] ?? 'N/A'; // Default to N/A if not found
+
+                // Get selected plans names
+                $selectedPlanNamesStr = "Ver PDF anexo";
+
+                $msgBroker = "📩 *NOVO LEAD CAPTURADO*\n\n" .
+                    "👤 *HISTÓRICO:* 🟢 PRIMEIRA CONSULTA\n" .
+                    "📱 *ORIGEM:* 🌐 WEB | 📍 *CIDADE:* {$city} | 👥 *VIDAS:* {$livesCount}\n" .
+                    "💼 *PERFIL:* {$profile}\n" .
+                    "🛡️ *STATUS DO PERFIL:* ✅ VALIDADO\n" .
+                    "🏥 *HOSPITAL ALVO:* (Ver PDF) | 📊 *PLANOS:* {$selectedPlanNamesStr}\n\n" .
+                    "💡 *VALIDAÇÃO 2026:* Cliente validado via sistema. O PDF gerado contém os valores e a rede.\n\n" .
+                    "📄 *[CLIQUE AQUI PARA O PDF COMPLETO]* (Ver Recibo Acima)\n\n" .
+                    "📲 *WhatsApp Cliente:* {$clientPhone}";
+
+                $adminPhoneTarget = '5521999999999'; // Admin Phone (Same as Sender)
+
+                $this->whatsappService->sendText($adminPhoneTarget, $msgBroker);
+                // Also send the system PDF to admin
+                $this->whatsappService->sendPdf($adminPhoneTarget, $pdfSystemContent, "Proposta_Sistema_{$clientPhone}.pdf");
             }
 
             return response()->json([

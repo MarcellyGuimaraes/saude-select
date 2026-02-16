@@ -385,11 +385,9 @@
             const options = document.querySelectorAll('.profile-option');
             if(options.length > 0) {
                 options.forEach(el => {
-                    // Reset to inactive state (dimmed)
                     el.classList.remove('border-blue-500', 'ring-2', 'ring-blue-500', 'bg-blue-50', 'opacity-100');
                     el.classList.add('border-gray-200', 'opacity-40', 'bg-white');
                     
-                    // Reset indicator
                     const indicator = el.querySelector('.selected-indicator');
                     if(indicator) {
                         indicator.classList.remove('bg-blue-500', 'border-blue-500');
@@ -399,13 +397,11 @@
                 });
             }
 
-            // Activate selected
             const selectedBtn = document.getElementById(`btn-${profile}`);
             if(selectedBtn) {
                 selectedBtn.classList.remove('border-gray-200', 'opacity-40', 'bg-white');
                 selectedBtn.classList.add('border-blue-500', 'ring-2', 'ring-blue-500', 'bg-blue-50', 'opacity-100');
                 
-                // Activate indicator
                 const indicator = selectedBtn.querySelector('.selected-indicator');
                 if(indicator) {
                     indicator.classList.remove('border-gray-300');
@@ -414,35 +410,100 @@
                 }
             }
 
-            // Logic: PME Warning
+            // PME Warning
             const pmeWarning = document.getElementById('pme-warning');
             if(pmeWarning) {
                 if(profile === 'pme') pmeWarning.classList.remove('hidden');
                 else pmeWarning.classList.add('hidden');
             }
 
-            // Logic: Profession Input
+            // Profession Input Logic
             const profissaoInput = document.getElementById('profissao-input');
             const btnContinue = document.getElementById('btn-step-2-next');
 
             if(profissaoInput && btnContinue) {
                 if(profile === 'adesao') {
                     profissaoInput.classList.remove('hidden');
-                    btnContinue.classList.add('hidden'); // Hide continue until profession selected/typed
+                    // Hide continue until profession is selected/valid
+                    // Check if already has value
+                    const profValue = document.getElementById('prof-search')?.value;
+                    if(profValue && profValue.length > 2) {
+                        btnContinue.classList.remove('hidden');
+                    } else {
+                        btnContinue.classList.add('hidden');
+                    }
                     setTimeout(() => document.getElementById('prof-search')?.focus(), 100);
                 } else {
                     profissaoInput.classList.add('hidden');
                     btnContinue.classList.remove('hidden');
+                    // Ensure display block for non-adesao
+                    btnContinue.style.display = 'block';
+                    btnContinue.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
+            }
+        }
+
+        function debounceProfissao(query) {
+            clearTimeout(profDebounce);
+            const loading = document.getElementById('prof-loading');
+            const suggestions = document.getElementById('prof-suggestions');
+            const btnContinue = document.getElementById('btn-step-2-next');
+
+            if (query.length < 2) {
+                suggestions.classList.add('hidden');
+                if(btnContinue) btnContinue.classList.add('hidden');
+                return;
+            }
+
+            if(loading) loading.classList.remove('hidden');
+
+            profDebounce = setTimeout(() => {
+                if(loading) loading.classList.add('hidden');
+                
+                // Filter Valid Professions
+                const matches = VALID_PROFESSIONS.filter(p => p.toLowerCase().includes(query.toLowerCase()));
+                
+                if (matches.length > 0) {
+                    suggestions.innerHTML = matches.map(p => `
+                        <div class="p-3 hover:bg-gray-100 cursor-pointer border-b last:border-0 text-sm text-gray-700" 
+                             onclick="selectProfissao('${p}')">
+                            <i class="fas fa-user-tie mr-2 text-gray-400"></i> ${p}
+                        </div>
+                    `).join('');
+                    suggestions.classList.remove('hidden');
+                } else {
+                     suggestions.innerHTML = `
+                        <div class="p-3 text-sm text-gray-500 text-center cursor-pointer hover:bg-gray-50" onclick="fallbackToCPF()">
+                            Nenhuma tabela específica encontrada.<br>
+                            <span class="text-blue-600 font-bold">Clique aqui para ver planos por CPF</span>
+                        </div>
+                    `;
+                    suggestions.classList.remove('hidden');
+                }
+            }, 300);
+        }
+
+        function selectProfissao(prof) {
+            const input = document.getElementById('prof-search');
+            const suggestions = document.getElementById('prof-suggestions');
+            const btnContinue = document.getElementById('btn-step-2-next');
+
+            if(input) input.value = prof;
+            if(suggestions) suggestions.classList.add('hidden');
+            state.profession = prof;
+            
+            if(btnContinue) {
+                btnContinue.classList.remove('hidden');
+                btnContinue.style.display = 'block'; // Force display
+                btnContinue.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         }
 
         function fallbackToCPF() {
             document.getElementById('prof-suggestions').classList.add('hidden');
-            showToast('Não encontramos uma tabela específica para esta profissão. Redirecionando para planos Pessoais...', 'info');
+            showToast('Redirecionando para planos Pessoais (CPF)...', 'info');
             selectProfile('cpf');
-            // Optional: Auto advance?
-            setTimeout(() => nextStep(3), 1500); 
+            setTimeout(() => nextStep(3), 1000); 
         }
 
         function updateLives(key, delta) {
@@ -679,6 +740,12 @@
                     initializeStep(step);
 
                     window.scrollTo(0, 0);
+
+                    // Inject City in Step 5 if applicable
+                    if(step === 5) {
+                        const citySpan = document.getElementById('dynamic-city-step5');
+                        if(citySpan) citySpan.innerText = state.city || 'Niterói';
+                    }
                 })
                 .catch(error => {
                     console.error('Erro:', error);
