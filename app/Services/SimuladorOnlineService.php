@@ -265,12 +265,17 @@ class SimuladorOnlineService
     protected function filtrarPlanosPorFaixaEtariaEUnicoPorOperadora(array $planos, array $lives): array
     {
         $planos = array_filter($planos, function (array $plan) use ($lives): bool {
-            $texto = ($plan['nome'] ?? '').' '.($plan['operadora'] ?? '').' '.($plan['operadora_descricao'] ?? '');
+            $rawText = ($plan['nome'] ?? '').' '.($plan['operadora'] ?? '').' '.($plan['operadora_descricao'] ?? '');
+            $texto = mb_strtolower($rawText); // Normaliza para minúsculo para garantir case-insensitive
+            
             $idadeMinima = null;
             if (str_contains($texto, '50+') || str_contains($texto, '+50')) {
                 $idadeMinima = 50;
             } elseif (str_contains($texto, '59+') || str_contains($texto, '+59')) {
                 $idadeMinima = 59;
+            } elseif (str_contains($texto, 'senior') || str_contains($texto, 'sênior')) {
+                // Senior plans usually start around 49 or 54, setting 49 as safe margin for "Senior" if broadly used
+                $idadeMinima = 49;
             }
             if ($idadeMinima !== null) {
                 $temVidaNaFaixa = false;
