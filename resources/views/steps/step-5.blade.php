@@ -21,7 +21,7 @@
         <input type="tel" id="whatsapp-input" placeholder="(21) 99999-9999" class="w-full p-4 border-2 border-green-200 rounded-xl focus:outline-none focus:border-green-500 text-lg shadow-sm transition-all focus:shadow-md">
         
         <p class="text-[10px] text-gray-400 mt-3 text-center leading-tight">
-            ⚖️ Ao clicar, você concorda com os <u>Termos de Uso</u> e autoriza o envio do Dossiê SaúdeSelect 2026 via WhatsApp.
+            ⚖️ Ao clicar, você concorda com os <u>Termos de Uso</u> e autoriza o envio do Dossiê SaúdeSelect {{ date('Y') }} via WhatsApp.
         </p>
     </div>
 

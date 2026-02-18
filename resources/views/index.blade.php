@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>SaúdeSelect 2026 - MVP</title>
+    <title>SaúdeSelect {{ date('Y') }} - MVP</title>
     <!-- Tailwind CSS (Via CDN para não depender de Node) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome para ícones -->
@@ -63,7 +63,7 @@
         </div>
         <div class="flex justify-between items-center mb-2 relative">
             <h1 class="text-xs md:text-sm font-semibold text-gray-500 italic flex-1 mr-2">
-                ⏳ Gerando sua tabela oficial 2026 para <span id="header-city-name" class="font-bold text-blue-600">...</span>...
+                ⏳ Gerando sua tabela oficial {{ date('Y') }}...
             </h1>
             <div id="location-container" class="text-[10px] md:text-xs text-gray-500 flex items-center bg-white px-3 py-1.5 rounded-full shadow-sm cursor-pointer hover:bg-blue-50 border border-gray-100 transition-all group">
                 <span class="mr-1 hidden md:inline">📍 Você está em </span>
@@ -619,7 +619,7 @@
                 // If Profile is PME or Adesao -> Alert and Switch to CPF
                 if (state.profile === 'pme' || state.profile === 'adesao') {
                     showModal(
-                        'Aviso de Aceitação 2026',
+                        'Aviso de Aceitação',
                         'Para o perfil de crianças (0-18 anos) sem um adulto titular, a contratação em ' + state.city + ' deve ser feita via CPF (Individual).\n\nAjustaremos seu perfil automaticamente para garantir a emissão do plano.',
                         () => {
                             selectProfile('cpf');
@@ -637,7 +637,7 @@
             if (state.profile === 'pme' && state.totalLives === 1) {
                 showModal(
                     'Regra de Mínimo de Vidas',
-                    'Para contratar via CNPJ ou MEI em 2026, o mínimo é de 2 vidas.\n\nDeseja adicionar um dependente agora?',
+                    'Para contratar via CNPJ ou MEI, o mínimo é de 2 vidas.\n\nDeseja adicionar um dependente agora?',
                     () => {
                         // User chose to Add Dependent -> Stay here.
                         // Ideally focus on a + button or just close logic.
@@ -952,7 +952,7 @@
                 
                 if (state.hospitalId && isMatch) {
                     // Scenario A
-                    matchNote = `✨ Nota: Identificamos que o Hospital <strong>${state.hospitals.find(h=>h.id==state.hospitalId)?.nome || 'Selecionado'}</strong> possui aceitação garantida para sua Categoria (${state.profile === 'pme' ? 'PME' : 'CPF'}) e Idades em 2026. Esta é a sua melhor escolha técnica!`;
+                    matchNote = `✨ Nota: Identificamos que o Hospital <strong>${state.hospitals.find(h=>h.id==state.hospitalId)?.nome || 'Selecionado'}</strong> possui aceitação garantida para sua Categoria (${state.profile === 'pme' ? 'PME' : 'CPF'}) e Idades. Esta é a sua melhor escolha técnica!`;
                     noteClass = 'bg-blue-50 text-blue-800 border-blue-100';
                 } else if (state.hospitalId && !isMatch) {
                      // Scenario B (simplified for demo)
@@ -1043,7 +1043,7 @@
                             <span class="text-[9px] bg-cyan-50 text-cyan-600 px-1.5 py-0.5 rounded border border-cyan-100 flex items-center font-bold">💎 RECOMENDAÇÃO TÉCNICA</span>
                         </div>
                         
-                        <p class="text-[9px] text-gray-400 italic mb-2">📅 Preços e condições válidos para adesões em janeiro de 2026.</p>
+                        <p class="text-[9px] text-gray-400 italic mb-2">📅 Preços e condições válidos para adesões em {{ date('Y') }}.</p>
 
                         <div class="mb-1 flex justify-between items-end border-t border-dashed border-gray-100 pt-2">
                             <div>

@@ -1,7 +1,7 @@
 <!-- PASSO 2: Perfil Jurídico (40%) -->
 <div id="step-2" class="step-content p-6">
     <div class="text-center mb-6">
-        <h2 class="text-lg font-bold text-gray-800 mb-2">💡 Como você prefere contratar para liberar sua tabela oficial 2026?</h2>
+        <h2 class="text-lg font-bold text-gray-800 mb-2">💡 Como você prefere contratar para liberar sua tabela oficial {{ date('Y') }}?</h2>
     </div>
 
     <div class="space-y-3">
@@ -25,7 +25,7 @@
             <!-- Aviso PME (Escondido) -->
             <div id="pme-warning" class="hidden mt-3 pt-3 border-t border-dashed border-yellow-200">
                 <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-100 text-xs text-yellow-800 leading-relaxed">
-                    <strong>⚠️ Aviso de Aceitação 2026:</strong> Para garantir o desconto desta tabela, seu CNPJ ou MEI deve ter no mínimo 6 meses de abertura. Caso sua empresa seja mais recente, selecione a opção CPF.
+                    <strong>⚠️ Aviso de Aceitação:</strong> Para garantir o desconto desta tabela, seu CNPJ ou MEI deve ter no mínimo 6 meses de abertura. Caso sua empresa seja mais recente, selecione a opção CPF.
                 </div>
             </div>
         </div>
@@ -86,7 +86,7 @@
     <!-- Regra de Ouro -->
     <div class="mt-8 bg-blue-50 p-4 rounded-xl border border-blue-100">
         <p class="text-[10px] text-blue-800 leading-relaxed text-center">
-            <strong>✨ Regra de Ouro (Versão Premium):</strong> Para garantir precisão total, nossa inteligência calcula preços e regras de rede em tempo real. Cada perfil acima possui benefícios exclusivos para 2026. Para comparar caminhos diferentes, basta realizar uma nova consulta após receber seu PDF.
+            <strong>✨ Regra de Ouro (Versão Premium):</strong> Para garantir precisão total, nossa inteligência calcula preços e regras de rede em tempo real. Cada perfil acima possui benefícios exclusivos para {{ date('Y') }}. Para comparar caminhos diferentes, basta realizar uma nova consulta após receber seu PDF.
         </p>
     </div>
 

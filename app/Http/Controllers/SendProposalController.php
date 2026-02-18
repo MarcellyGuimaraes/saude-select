@@ -51,7 +51,7 @@ class SendProposalController extends Controller
                 $apiResult = $this->whatsappService->sendPdf($clientPhone, $pdfClientContent, 'proposta-plano.pdf');
 
                 // Action 3: Send Follow-up Message to Client
-                $msgClient = "O Dossiê SaúdeSelect 2026 solicitado já está disponível acima. 📄\n\n" .
+                $msgClient = "O Dossiê SaúdeSelect " . date('Y') . " solicitado já está disponível acima. 📄\n\n" .
                     "Este documento apresenta o detalhamento técnico da seleção realizada, com os respectivos valores e especificações de rede.\n\n" .
                     "A equipe de suporte analisará os critérios de aceitação para o perfil informado e entrará em contato para validar o match técnico, além de esclarecer eventuais dúvidas sobre carências ou procedimentos de adesão.\n\n" .
                     "Agradecemos por utilizar a inteligência da SaúdeSelect. 🚀";
@@ -80,7 +80,7 @@ class SendProposalController extends Controller
                     "💼 *PERFIL:* {$profile}\n" .
                     "🛡️ *STATUS DO PERFIL:* ✅ VALIDADO\n" .
                     "🏥 *HOSPITAL ALVO:* (Ver PDF) | 📊 *PLANOS:* {$selectedPlanNamesStr}\n\n" .
-                    "💡 *VALIDAÇÃO 2026:* Cliente validado via sistema. O PDF gerado contém os valores e a rede.\n\n" .
+                    "💡 *VALIDAÇÃO " . date('Y') . ":* Cliente validado via sistema. O PDF gerado contém os valores e a rede.\n\n" .
                     "📄 *[CLIQUE AQUI PARA O PDF COMPLETO]* (Ver Recibo Acima)\n\n" .
                     "📲 *WhatsApp Cliente:* {$clientPhone}";
 
