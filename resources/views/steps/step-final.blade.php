@@ -38,7 +38,7 @@
     <div class="border-t border-gray-100 pt-6 mt-8">
         <div class="text-[10px] text-gray-400 leading-relaxed max-w-lg mx-auto text-justify">
             <p class="font-bold text-center mb-2">SaúdeSelect – Inteligência e Seleção de Benefícios</p>
-            <p class="text-center mb-2">Uma plataforma de tecnologia e consultoria operada por: Renan Lima <br> Consultor Técnico SUSEP: (21) 98012-7961</p>
+            <p class="text-center mb-2">Uma plataforma de tecnologia e consultoria operada por: Renan Lima <br> Consultor Técnico SUSEP: 231152113 <br> Número de telefone: (21) 98012-7961</p>
             
             <p class="mb-2">
                 As simulações apresentadas utilizam o motor de busca oficial vigente para {{ date('Y') }}. A rede credenciada e os valores podem sofrer alterações pelas operadoras sem aviso prévio. A formalização final dos planos é realizada via canais operacionais parceiros, sujeita à análise de risco e aceitação da seguradora.
