@@ -1303,18 +1303,20 @@
                         let msg = '';
                         
                         if (missingHospital.length > 0) {
-                            msg += `⚠️ <strong>Hospital não encontrado na rede:</strong>\nO hospital selecionado não foi identificado na rede credenciada dos seguintes planos:\n• ${missingHospital.join('\n• ')}\n\n`;
+                            msg += `ℹ️ <strong>Observação de Rede:</strong>\nNos planos abaixo, o hospital selecionado não consta na listagem online principal. Porém, você contará com outras excelentes opções de suporte na região:\n• ${missingHospital.join('\n• ')}\n\n`;
                         }
 
                         if (noElective.length > 0) {
-                            msg += `⚠️ <strong>Sem internação eletiva:</strong>\nOs seguintes planos atendem o hospital, mas apenas para Pronto-Socorro (sem internação programada):\n• ${noElective.join('\n• ')}\n\n`;
+                            msg += `ℹ️ <strong>Foco em Pronto-Atendimento:</strong>\nPara os planos abaixo, o atendimento neste hospital é focado em emergências (PS). Para internações eletivas, você terá acesso a hospitais de alto padrão equivalentes:\n• ${noElective.join('\n• ')}\n\n`;
                         }
 
-                        msg += "Deseja continuar com a simulação mesmo assim?";
+                        msg += "Deseja ver o comparativo completo?";
                         
-                        showModal('Atenção', msg, 
+                        showModal('Atenção - Detalhes da Rede', msg, 
                             () => nextStep(5), // Confirm
-                            () => nextStep(4)  // Cancel - Volta para o passo 4
+                            () => nextStep(4), // Cancel - Volta para o passo 4
+                            'Ver Comparativo', // Botão Confirmar
+                            'Revisar Planos'   // Botão Cancelar
                         );
                         return;
                     }
