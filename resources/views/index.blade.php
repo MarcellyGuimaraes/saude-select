@@ -1287,7 +1287,8 @@
                         planIds: state.selectedPlans,
                         lives: state.lives,
                         profile: state.profile,
-                        profession_id: state.professionId || null
+                        profession_id: state.professionId || null,
+                        hospital: state.hospital || null
                     })
                 });
 
