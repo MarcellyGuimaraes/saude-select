@@ -556,16 +556,15 @@ class SimuladorOnlineService
 
             if ($targetHospital) {
                 // Se busca hospital específico:
-                // Só é válido se encontrou o hospital E ele tem internação.
-                // Se não encontrou o hospital -> Flag (Falta rede)
-                // Se encontrou mas não tem H -> Flag (Sem internação eletiva)
-                if (!$hospitalFound || !$hasH) {
-                    $plansWithoutInternacao[] = $nomeOperadora;
+                if (!$hospitalFound) {
+                    $plansWithoutInternacao[] = ['name' => $nomeOperadora, 'reason' => 'missing_hospital'];
+                } elseif (!$hasH) {
+                    $plansWithoutInternacao[] = ['name' => $nomeOperadora, 'reason' => 'no_elective'];
                 }
             } else {
                 // Busca genérica
                 if (!$hasH) {
-                    $plansWithoutInternacao[] = $nomeOperadora;
+                    $plansWithoutInternacao[] = ['name' => $nomeOperadora, 'reason' => 'no_elective'];
                 }
             }
         }

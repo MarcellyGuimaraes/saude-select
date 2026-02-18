@@ -1296,8 +1296,21 @@
                 console.log(data);
                 if (data.success) {
                     if (data.plans_without_internacao && data.plans_without_internacao.length > 0) {
-                        const planNames = data.plans_without_internacao.join(', ');
-                        const msg = `Os seguintes planos não possuem rede credenciada com internação eletiva:\n\n${planNames}\n\nDeseja continuar com a simulação mesmo assim?`;
+                        // Separate by reason
+                        const missingHospital = data.plans_without_internacao.filter(p => p.reason === 'missing_hospital').map(p => p.name);
+                        const noElective = data.plans_without_internacao.filter(p => p.reason === 'no_elective').map(p => p.name);
+
+                        let msg = '';
+                        
+                        if (missingHospital.length > 0) {
+                            msg += `⚠️ <strong>Hospital não encontrado na rede:</strong>\nO hospital selecionado não foi identificado na rede credenciada dos seguintes planos:\n• ${missingHospital.join('\n• ')}\n\n`;
+                        }
+
+                        if (noElective.length > 0) {
+                            msg += `⚠️ <strong>Sem internação eletiva:</strong>\nOs seguintes planos atendem o hospital, mas apenas para Pronto-Socorro (sem internação programada):\n• ${noElective.join('\n• ')}\n\n`;
+                        }
+
+                        msg += "Deseja continuar com a simulação mesmo assim?";
                         
                         showModal('Atenção', msg, 
                             () => nextStep(5), // Confirm
