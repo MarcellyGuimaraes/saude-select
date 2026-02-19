@@ -900,9 +900,29 @@
                 const data = await response.json();
                 if (data.success) {
                     state.planos = data.planos;
-                    // Mock sorting by price (assuming ID correlates or use a mock price field if available)
-                    // unique sort logic:
-                    state.planos.sort((a, b) => (a.preco || 0) - (b.preco || 0));
+                    // Sorting Logic: Numbers first (Ascending), then others
+                    state.planos.sort((a, b) => {
+                        const getNum = (str) => {
+                            const match = str.match(/(\d+)/);
+                            return match ? parseInt(match[0], 10) : Number.MAX_SAFE_INTEGER;
+                        };
+                        
+                        const numA = getNum(a.nome);
+                        const numB = getNum(b.nome);
+                        
+                        // If both have numbers, sort by number
+                        if (numA !== Number.MAX_SAFE_INTEGER && numB !== Number.MAX_SAFE_INTEGER) {
+                            return numA - numB;
+                        }
+
+                        // If one has number and other doesn't, number comes first
+                        if (numA !== numB) {
+                            return numA - numB;
+                        }
+
+                        // Fallback: Alphabetical by Name if no numbers or same number
+                        return a.nome.localeCompare(b.nome);
+                    });
                     renderPlanos();
                 } else {
                     showToast('Erro ao buscar planos: ' + data.error, 'error');
@@ -1304,15 +1324,39 @@
                         let msg = '';
                         
                         if (missingHospital.length > 0) {
-                            msg += `ℹ️ <strong>Observação de Rede:</strong>\nNos planos abaixo, o hospital selecionado não consta na listagem online principal. Porém, você contará com outras excelentes opções de suporte na região:\n• ${missingHospital.join('\n• ')}\n\n`;
+                            msg += `
+                                <div class="bg-blue-50 border-l-4 border-blue-400 p-3 mb-3 text-left">
+                                    <h4 class="font-bold text-blue-800 text-sm mb-1"><i class="fas fa-info-circle mr-1"></i>Observação sobre a Rede Credenciada</h4>
+                                    <p class="text-xs text-blue-700 leading-relaxed">
+                                        Para os planos abaixo, o hospital <strong>${state.hospital}</strong> não consta na listagem oficial online. No entanto, estes planos oferecem ampla rede de suporte na região.
+                                    </p>
+                                    <div class="mt-2 text-xs font-semibold text-blue-800 bg-white p-2 rounded border border-blue-100">
+                                        ${missingHospital.join(', ')}
+                                    </div>
+                                </div>`;
                         }
 
                         if (noElective.length > 0) {
-                            msg += `ℹ️ <strong>Foco em Pronto-Atendimento:</strong>\nPara os planos abaixo, o atendimento neste hospital é focado em emergências (PS). Para internações eletivas, você terá acesso a hospitais de alto padrão equivalentes:\n• ${noElective.join('\n• ')}\n\n`;
+                            msg += `
+                                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-3 text-left">
+                                    <h4 class="font-bold text-yellow-800 text-sm mb-1"><i class="fas fa-exclamation-triangle mr-1"></i>Atenção: Cobertura Hospitalar</h4>
+                                    <p class="text-xs text-yellow-700 leading-relaxed mb-2">
+                                        Identificamos que no hospital <strong>${state.hospital}</strong>, os planos abaixo oferecem cobertura <strong>exclusiva para Pronto-Socorro (Emergência)</strong>.
+                                    </p>
+                                    <p class="text-xs text-yellow-700 leading-relaxed mb-2">
+                                        ⚠️ Para <strong>cirurgias eletivas e internações programadas</strong>, você será atendido em outros hospitais de excelência da rede credenciada destes planos.
+                                    </p>
+                                    <div class="mt-1 text-xs font-semibold text-yellow-800 bg-white p-2 rounded border border-yellow-200">
+                                        ${noElective.join(', ')}
+                                    </div>
+                                </div>`;
                         }
 
-                        msg += "Deseja ver o comparativo completo?";
+                        msg += "<p class='text-sm text-gray-600 mt-2 text-center'>Deseja ver o comparativo completo mesmo assim?</p>";
                         
+                        // Remove newlines from msg to prevent double BRs if showModal does replace
+                        msg = msg.replace(/\n/g, '');
+
                         showModal('Atenção - Detalhes da Rede', msg, 
                             () => nextStep(5), // Confirm
                             () => nextStep(4), // Cancel - Volta para o passo 4
