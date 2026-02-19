@@ -4,7 +4,65 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>SaúdeSelect {{ date('Y') }} - MVP</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Simulador de Planos de Saúde Online. Compare preços e coberturas dos melhores planos de saúde (Unimed, Bradesco, Amil, SulAmérica e mais). Cotação rápida, personalizada e gratuita para você e sua família.">
+    <meta name="keywords" content="plano de saúde, simulador online, cotação plano de saúde, unimed, bradesco saúde, amil, sulamérica, plano de saúde empresarial, plano de saúde familiar, plano de saúde rj, preços planos de saúde">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="{{ url()->current() }}">
+    <meta name="author" content="Saúde Select">
+
+    <!-- Open Graph / Facebook / WhatsApp -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:title" content="SaúdeSelect - Simulador de Planos de Saúde Online">
+    <meta property="og:description" content="Compare os melhores planos de saúde em segundos. Cotação online gratuita das principais operadoras do Brasil.">
+    <meta property="og:image" content="{{ asset('apple-touch-icon.png') }}">
+    <meta property="og:site_name" content="SaúdeSelect">
+    <meta property="og:locale" content="pt_BR">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="{{ url()->current() }}">
+    <meta property="twitter:title" content="SaúdeSelect - Simulador de Planos de Saúde Online">
+    <meta property="twitter:description" content="Compare preços e coberturas dos melhores planos de saúde. Simulação rápida e fácil.">
+    <meta property="twitter:image" content="{{ asset('apple-touch-icon.png') }}">
+
+    <!-- Polices -->
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+    <title>SaúdeSelect {{ date('Y') }} - Compare Planos de Saúde Online</title>
+    
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "SaúdeSelect",
+      "url": "{{ url('/') }}",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "{{ url('/') }}?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "SaúdeSelect",
+      "url": "{{ url('/') }}",
+      "logo": "{{ asset('apple-touch-icon.png') }}",
+      "sameAs": [
+        "https://www.facebook.com/saudeselect",
+        "https://www.instagram.com/saudeselect"
+      ]
+    }
+    </script>
+
     <!-- Tailwind CSS (Via CDN para não depender de Node) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome para ícones -->
