@@ -966,7 +966,7 @@
 
                 // Tags Logic (Dynamic based on strings)
                 const tags = [];
-                const fullText = (plano.operadora + ' ' + plano.nome + ' ' + (plano.operadora_descricao || '')).toUpperCase();
+                const fullText = ((plano.operadora || '') + ' ' + (plano.nome || '') + ' ' + (plano.operadora_descricao || '')).toUpperCase();
 
                 // 1. Acomodação (Always show if present)
                 if (plano.acomodacao) {
@@ -980,10 +980,11 @@
                 }
 
                 // 2. Coparticipação
-                if (fullText.includes('COPART') || fullText.includes('COM COPART')) {
-                    tags.push({ label: 'C/ Copar', desc: 'Plano com Coparticipação', icon: 'fa-coins', class: 'bg-gray-50 text-gray-600 border-gray-100' });
-                } else if (fullText.includes('SEM COPART')) {
-                    tags.push({ label: 'S/ Copar', desc: 'Plano sem Coparticipação', icon: 'fa-check-circle', class: 'bg-green-50 text-green-600 border-green-100' });
+                if (fullText.includes('SEM') || fullText.includes('S/')) {
+                    tags.push({ label: 'S/ Copar', desc: 'Plano sem Coparticipação', icon: 'fa-coins', class: 'bg-gray-50 text-gray-600 border-gray-100' } );
+                }
+                if (fullText.includes('COM') || fullText.includes('C/')) {
+                    tags.push({ label: 'C/ Copar', desc: 'Plano com Coparticipação', icon: 'fa-check-circle', class: 'bg-green-50 text-green-600 border-green-100' });
                 }
 
                 // 3. Obstetrícia

@@ -207,7 +207,7 @@ class SimuladorOnlineService
         }
 
         $planosParsed = $this->parsePlanosTableHtml($planosHtml);
-        $planosFiltrados = $this->filtrarPlanosPorFaixaEtariaEUnicoPorOperadora($planosParsed, $lives);
+        $planosFiltrados = $this->filtrarPlanosPorFaixaEtariaECategorias($planosParsed, $lives);
 
         return array_values($planosFiltrados);
     }
@@ -260,13 +260,14 @@ class SimuladorOnlineService
     }
 
     /**
-     * Remove planos 50+/59+ sem vidas na faixa e mantém um plano por operadora.
+     * Filtra planos por faixa etária e mantém um por categoria (Acomodação + Coparticipação) para cada operadora.
      */
-    protected function filtrarPlanosPorFaixaEtariaEUnicoPorOperadora(array $planos, array $lives): array
+    protected function filtrarPlanosPorFaixaEtariaECategorias(array $planos, array $lives): array
     {
-        $planos = array_filter($planos, function (array $plan) use ($lives): bool {
+        // Passo 1: Filtrar por Faixa Etária (Lógica existente)
+        $planosValidos = array_filter($planos, function (array $plan) use ($lives): bool {
             $rawText = ($plan['nome'] ?? '').' '.($plan['operadora'] ?? '').' '.($plan['operadora_descricao'] ?? '');
-            $texto = mb_strtolower($rawText); // Normaliza para minúsculo para garantir case-insensitive
+            $texto = mb_strtolower($rawText);
             
             $idadeMinima = null;
             if (str_contains($texto, '50+') || str_contains($texto, '+50')) {
@@ -274,9 +275,9 @@ class SimuladorOnlineService
             } elseif (str_contains($texto, '59+') || str_contains($texto, '+59')) {
                 $idadeMinima = 59;
             } elseif (str_contains($texto, 'senior') || str_contains($texto, 'sênior')) {
-                // Senior plans usually start around 49 or 54, setting 49 as safe margin for "Senior" if broadly used
                 $idadeMinima = 49;
             }
+
             if ($idadeMinima !== null) {
                 $temVidaNaFaixa = false;
                 foreach (self::AgeBracketKeys as $key) {
@@ -297,18 +298,45 @@ class SimuladorOnlineService
             return true;
         });
 
-        $vistos = [];
-        $umPorOperadora = [];
-        foreach ($planos as $plan) {
-            $op = $plan['operadora'] ?? '';
-            if ($op === '' || isset($vistos[$op])) {
-                continue;
+        // Passo 2: Agrupar por Operadora e depois por Categoria
+        $grouped = [];
+
+        foreach ($planosValidos as $plan) {
+            $op = $plan['operadora'] ?? 'Outros';
+            
+            // Detectar Coparticipação
+            $fullText = mb_strtoupper(($plan['operadora'] ?? '') . ' ' . ($plan['nome'] ?? '') . ' ' . ($plan['operadora_descricao'] ?? ''));
+            $copartStatus = 'SEM_COPART'; // Default? Or check specifically for "SEM"
+
+            if (str_contains($fullText, 'PARCIAL')) {
+                $copartStatus = 'COPART_PARCIAL';
+            } elseif (str_contains($fullText, 'COPART') || str_contains($fullText, 'COM COPART') || str_contains($fullText, 'C/ COPART')) {
+                // Se diz "Copart" mas não especificou "Parcial", assumimos Total ou Genérico (que trataremos como Categoria distinta de Sem)
+                $copartStatus = 'COPART_TOTAL'; 
+            } elseif (str_contains($fullText, 'SEM COPART') || str_contains($fullText, 'S/ COPART')) {
+                $copartStatus = 'SEM_COPART';
+            } else {
+                $copartStatus = 'STANDARD';
             }
-            $vistos[$op] = true;
-            $umPorOperadora[] = $plan;
+
+            $acomodacao = $plan['acomodacao'] === 'Apartamento' ? 'APT' : 'ENF';
+            
+            $categoryKey = "{$acomodacao}_{$copartStatus}";
+
+            if (!isset($grouped[$op][$categoryKey])) {
+                $grouped[$op][$categoryKey] = $plan;
+            }
         }
 
-        return $umPorOperadora;
+        // Flatten results
+        $finalList = [];
+        foreach ($grouped as $op => $categories) {
+            foreach ($categories as $plan) {
+                $finalList[] = $plan;
+            }
+        }
+
+        return $finalList;
     }
 
     protected function client(): PendingRequest
