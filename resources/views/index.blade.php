@@ -1341,15 +1341,15 @@
                                 <div class="bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-3 text-left">
                                     <h4 class="font-bold text-yellow-800 text-sm mb-1"><i class="fas fa-exclamation-triangle mr-1"></i>Atenção: Cobertura Hospitalar</h4>
                                     <p class="text-xs text-yellow-700 leading-relaxed mb-2">
-                                        Identificamos que no hospital <strong>${state.hospital}</strong>, os planos abaixo oferecem cobertura <strong>exclusiva para Pronto-Socorro (Emergência)</strong>.
+                                        Identificamos que o(s) plano(s) abaixo(os) oferecem cobertura <strong>exclusiva para Pronto-Socorro (Emergência)</strong>.
                                     </p>
                                     <div class="mt-1 text-xs font-semibold text-yellow-800 bg-white p-2 rounded border border-yellow-200">
                                         ${noElective.join(', ')}
                                     </div>
-                                    <p class="text-xs text-yellow-700 leading-relaxed mb-2">
-                                        ⚠️ Para <strong>cirurgias eletivas e internações programadas</strong>, você será atendido em outros hospitais de excelência da rede credenciada destes planos.
-                                    </p>
-                                </div>`;
+                                    </div>`;
+                                    // <p class="text-xs text-yellow-700 leading-relaxed mb-2">
+                                    //     ⚠️ Para <strong>cirurgias eletivas e internações programadas</strong>, você será atendido em outros hospitais de excelência da rede credenciada destes planos.
+                                    // </p>
                         }
 
                         msg += "<p class='text-sm text-gray-600 mt-2 text-center'>Deseja ver o comparativo completo mesmo assim?</p>";
