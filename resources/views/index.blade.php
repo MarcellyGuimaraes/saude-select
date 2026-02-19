@@ -42,14 +42,15 @@
     <title>SaúdeSelect {{ date('Y') }} - Compare Planos de Saúde Online</title>
     
     <!-- JSON-LD Structured Data -->
+    <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
     {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
+      "@@context": "https://schema.org",
+      "@@type": "WebSite",
       "name": "SaúdeSelect",
       "url": "{{ url('/') }}",
       "potentialAction": {
-        "@type": "SearchAction",
+        "@@type": "SearchAction",
         "target": "{{ url('/') }}?q={search_term_string}",
         "query-input": "required name=search_term_string"
       }
@@ -57,8 +58,8 @@
     </script>
     <script type="application/ld+json">
     {
-      "@context": "https://schema.org",
-      "@type": "Organization",
+      "@@context": "https://schema.org",
+      "@@type": "Organization",
       "name": "SaúdeSelect",
       "url": "{{ url('/') }}",
       "logo": "{{ asset('apple-touch-icon.png') }}",
@@ -1649,15 +1650,46 @@
         });
     </script>
     <script>
-        // Register Service Worker for PWA
+        // --- PWA LOGIC ---
+        let deferredPrompt;
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            console.log('PWA: Evento beforeinstallprompt capturado.');
+            
+            // Opcional: Mostrar botão de instação se estiver oculto
+            // document.getElementById('btn-install-pwa').style.display = 'block';
+        });
+
+        function installPWA() {
+            if (!deferredPrompt) {
+                console.log('PWA: Prompt de instalação não disponível (ainda não capturado ou já instalado).');
+                alert('A instalação não está disponível no momento. Tente recarregar a página ou usar o menu do navegador.');
+                return;
+            }
+
+            deferredPrompt.prompt();
+            
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('PWA: Usuário aceitou a instalação');
+                } else {
+                    console.log('PWA: Usuário recusou a instalação');
+                }
+                deferredPrompt = null;
+            });
+        }
+
+        // Register Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
                     .then(registration => {
-                        console.log('ServiceWorker registered with scope:', registration.scope);
+                        console.log('PWA: Service Worker registrado com sucesso:', registration.scope);
                     })
                     .catch(err => {
-                        console.log('ServiceWorker registration failed:', err);
+                        console.error('PWA: Falha ao registrar Service Worker:', err);
                     });
             });
         }
