@@ -1328,7 +1328,7 @@
                                 <div class="bg-blue-50 border-l-4 border-blue-400 p-3 mb-3 text-left">
                                     <h4 class="font-bold text-blue-800 text-sm mb-1"><i class="fas fa-info-circle mr-1"></i>Observação sobre a Rede Credenciada</h4>
                                     <p class="text-xs text-blue-700 leading-relaxed">
-                                        Para os planos abaixo, o hospital <strong>${state.hospital}</strong> não consta na listagem oficial online. No entanto, estes planos oferecem ampla rede de suporte na região.
+                                        Para os planos abaixo, o hospital <strong>${state.hospital}</strong> não consta na listagem oficial dos planos selecionados. No entanto, estes planos oferecem ampla rede de suporte na região.
                                     </p>
                                     <div class="mt-2 text-xs font-semibold text-blue-800 bg-white p-2 rounded border border-blue-100">
                                         ${missingHospital.join(', ')}
