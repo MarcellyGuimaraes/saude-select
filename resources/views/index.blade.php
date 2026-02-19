@@ -1154,10 +1154,10 @@
                 overlay.classList.remove('flex');
             } else {
                 // Select
-                if (state.selectedPlans.length >= 3) {
-                    showToast('Você pode selecionar no máximo 3 planos.', 'warning');
-                    return;
-                }
+                // if (state.selectedPlans.length >= 3) {
+                //     showToast('Você pode selecionar no máximo 3 planos.', 'warning');
+                //     return;
+                // }
                 state.selectedPlans.push(id);
                 card.classList.add('ring-2', 'ring-blue-500', 'border-blue-500');
                 overlay.classList.remove('hidden');
@@ -1176,17 +1176,17 @@
 
         function updateSelectionVisuals() {
             const allCards = document.querySelectorAll('.plan-card');
-            const isFull = state.selectedPlans.length >= 3;
+            // const isFull = state.selectedPlans.length >= 3;
 
             allCards.forEach(c => {
                 const id = parseInt(c.getAttribute('data-id'));
                 const isSelected = state.selectedPlans.includes(id);
 
-                if (isFull && !isSelected) {
-                    c.classList.add('opacity-40', 'grayscale');
-                } else {
+                // if (isFull && !isSelected) {
+                //     c.classList.add('opacity-40', 'grayscale');
+                // } else {
                     c.classList.remove('opacity-40', 'grayscale');
-                }
+                // }
             });
         }
 
