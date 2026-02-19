@@ -1343,12 +1343,12 @@
                                     <p class="text-xs text-yellow-700 leading-relaxed mb-2">
                                         Identificamos que no hospital <strong>${state.hospital}</strong>, os planos abaixo oferecem cobertura <strong>exclusiva para Pronto-Socorro (Emergência)</strong>.
                                     </p>
-                                    <p class="text-xs text-yellow-700 leading-relaxed mb-2">
-                                        ⚠️ Para <strong>cirurgias eletivas e internações programadas</strong>, você será atendido em outros hospitais de excelência da rede credenciada destes planos.
-                                    </p>
                                     <div class="mt-1 text-xs font-semibold text-yellow-800 bg-white p-2 rounded border border-yellow-200">
                                         ${noElective.join(', ')}
                                     </div>
+                                    <p class="text-xs text-yellow-700 leading-relaxed mb-2">
+                                        ⚠️ Para <strong>cirurgias eletivas e internações programadas</strong>, você será atendido em outros hospitais de excelência da rede credenciada destes planos.
+                                    </p>
                                 </div>`;
                         }
 
