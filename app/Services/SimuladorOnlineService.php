@@ -497,15 +497,22 @@ class SimuladorOnlineService
     /**
      * Analisa o HTML do cliente e identifica planos que não possuem "H" (internação eletiva) na rede credenciada.
      */
+    /**
+     * Analisa o HTML do cliente e identifica planos que não possuem "H" (internação eletiva) na rede credenciada.
+     */
     public static function identifyPlansWithoutInternacao(string $cleanHtml, ?string $targetHospital = null): array
     {
         $dom = new DOMDocument();
         libxml_use_internal_errors(true);
+        // Hack to handle UTF-8 correctly in loadHTML
         $dom->loadHTML('<?xml encoding="UTF-8">'.$cleanHtml);
         libxml_clear_errors();
         $xpath = new DOMXPath($dom);
 
         $plansWithoutInternacao = [];
+        
+        // Normalize search term if present
+        $normalizedTarget = $targetHospital ? self::normalizeString($targetHospital) : null;
 
         foreach ($xpath->query('//div[contains(@class,"operadora")]') as $operadora) {
             /** @var \DOMElement $operadora */
@@ -525,31 +532,51 @@ class SimuladorOnlineService
                 // Verifica bloco de Rede Credenciada
                 if ($h4 && trim($h4->textContent) === 'Rede Credenciada') {
                     $textoBloco = $bloco->textContent;
+                    $normalizedBloco = self::normalizeString($textoBloco);
 
-                    if ($targetHospital) {
-                        // Lógica para Hospital Específico
-                        // Verifica se o hospital alvo está neste bloco (case-insensitive)
-                        if (mb_stripos($textoBloco, $targetHospital) !== false) {
+                    if ($normalizedTarget) {
+                        // Verifica se o hospital alvo está neste bloco (case-insensitive & accent-insensitive)
+                        // Using normalized strings for comparison
+                        if (str_contains($normalizedBloco, $normalizedTarget)) {
                             $hospitalFound = true;
-                            // Se achou o hospital, verifica se ELE tem " - H"
-                            // A verificação ideal seria isolar a linha do hospital, mas como é um bloco de texto,
-                            // vamos assumir que se o hospital está lá, a flag " - H" deve estar associada.
-                            // Porem, a regra pedida é: se tiver o hospital, checar se tem internação.
-                            // Se o texto "Hospital X ... - H" estiver presente.
-                            // Simplificação robusta: Se achou o hospital, verifica se " - H" existe no bloco GERAL ou se está perto.
-                            // Dado a estrutura do HTML, vamos verificar se " - H" existe no bloco onde o hospital foi achado.
-                            if (preg_match('/\s-\s*H\b/', $textoBloco)) {
+                            
+                            // Check for H in the original text or normalized? 
+                            // The "H" usually appears as " - H" or " (H)" or just " H" at end of line.
+                            // Let's use a robust regex on the ORIGINAL text to preserve case if needed, 
+                            // but actually "H" is simple.
+                            // Regex covers:
+                            // 1. " - H" (space hyphen space H)
+                            // 2. "(H)" (parentheses H)
+                            // 3. " H" (space H) at end of a name/line (less safe, might match middle name starting with H)
+                            // Safer validation: " - H" is the standard from Simulador. "(H)" is another common one.
+                            // We look for these patterns specifically near the hospital name? 
+                            // Complex to find "near" in a blob.
+                            // Rule: if hospital is found, does the block *contain* the H indicator?
+                            // Issue: If there are multiple hospitals, we might match the H of another hospital.
+                            // However, we are limited to the block text.
+                            // Ideally, we'd split lines.
+                            // Let's try to be smarter: split block by lines (often separated by <br> or newlines)
+                            // But $bloco->textContent strips <br> mostly or joins them.
+                            // Let's stick to "if block contains - H" for now as per previous logic, just improved regex.
+                            
+                            // Regex Explanation:
+                            // \s : whitespace
+                            // [-\(]? : optional hyphen or open parenthesis
+                            // \s* : optional whitespace
+                            // H : literal H
+                            // [\)]? : optional close parenthesis
+                            // \b : word boundary (so it doesn't match House)
+                            if (preg_match('/(\s-\s*H\b|\(H\))/i', $textoBloco)) {
                                 $hasH = true;
                             }
                         }
                     } else {
                         // Lógica Genérica (sem hospital alvo)
-                        if (preg_match('/\s-\s*H\b/', $textoBloco)) {
+                        if (preg_match('/(\s-\s*H\b|\(H\))/i', $textoBloco)) {
                             $hasH = true;
                         }
                     }
-                    // Se já achou rede credenciada, break (geralmente só tem um bloco de rede)
-                    // Mas cuidado, pode ter mais de um bloco se a lista for longa? Geralmente não.
+                    // Se já achou rede credenciada, break
                     break; 
                 }
             }
@@ -559,6 +586,7 @@ class SimuladorOnlineService
                 if (!$hospitalFound) {
                     $plansWithoutInternacao[] = ['name' => $nomeOperadora, 'reason' => 'missing_hospital'];
                 } elseif (!$hasH) {
+                    // Found hospital but didn't find " - H" or "(H)" in that block
                     $plansWithoutInternacao[] = ['name' => $nomeOperadora, 'reason' => 'no_elective'];
                 }
             } else {
@@ -570,6 +598,20 @@ class SimuladorOnlineService
         }
 
         return $plansWithoutInternacao;
+    }
+
+    /**
+     * Remove accents and converts to lowercase for comparison.
+     */
+    protected static function normalizeString(string $str): string
+    {
+        $str = mb_strtolower($str, 'UTF-8');
+        $str = str_replace(
+            ['á','à','â','ã','ä','é','è','ê','ë','í','ì','î','ï','ó','ò','ô','õ','ö','ú','ù','û','ü','ç','ñ'],
+            ['a','a','a','a','a','e','e','e','e','i','i','i','i','o','o','o','o','o','u','u','u','u','c','n'],
+            $str
+        );
+        return $str;
     }
 
     /**
