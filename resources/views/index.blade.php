@@ -29,8 +29,8 @@
     <meta property="twitter:image" content="{{ asset('apple-touch-icon.png') }}">
 
     <!-- Polices -->
-    <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="alternate icon" href="/favicon.ico" sizes="any">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
     <!-- PWA -->
