@@ -254,8 +254,7 @@
         // --- ESTADO DA APLICAÇÃO ---
         const state = {
             step: 1,
-            hospital: '',
-            hospitalId: null,
+            nome: '',
             profile: null, // 'pme', 'adesao', 'cpf'
             lives: { '0-18': 0, '19-23': 0, '24-28': 0, '29-33': 0, '34-38': 0, '39-43': 0, '44-48': 0, '49-53': 0, '54-58': 0, '59+': 0 },
             totalLives: 0,
@@ -822,7 +821,6 @@
         function nextStep(step) {
             // Verificar se a localização foi concedida antes de permitir avançar
             if (!state.locationGranted) {
-                // Mostrar mensagem de bloqueio (código existente omitido para brevidade no diff, mas mantido na lógica se não tocar aqui)
                 // ... (mantendo lógica anterior de bloqueio se não houver replace) ...
                 // Simplificando o replace para focar no Loading:
                 const container = document.getElementById('step-container');
@@ -837,6 +835,14 @@
                     </div>
                 `;
                 return;
+            }
+
+            // Se estivermos saindo do passo 1, salva o nome
+            if (state.step === 1 && step > 1) {
+                const input = document.getElementById('user-name');
+                if (input) {
+                    state.nome = input.value.trim();
+                }
             }
 
             showMainLoading();
@@ -956,7 +962,7 @@
                     body: JSON.stringify({
                         profile: state.profile,
                         lives: state.lives,
-                        hospitalId: state.hospitalId,
+                        nome: state.nome,
                         regiao: state.regionId,
                         profession_id: state.professionId || null
                     })
@@ -1023,31 +1029,8 @@
             const currentPlans = planos.slice(startIndex, endIndex);
 
             const plansHtml = currentPlans.map((plano, index) => {
-                // Match Logic (Scenarios A, B, C, D)
                 let matchNote = '';
-                let noteClass = '';
-                
-                // Determine Scenario
-                // A: Match Perfeito (Hospital Accepts Profile + Age)
-                // B: Alternatives (Restrictions)
-                // C: Exception (No plans for hospital)
-                // D: Broad Search (No hospital selected or fallback)
-                
-                const isMatch = plano.hospital_match; // Assuming backend flag
-                
-                if (state.hospitalId && isMatch) {
-                    // Scenario A
-                    matchNote = `✨ Nota: Identificamos que o Hospital <strong>${state.hospitals.find(h=>h.id==state.hospitalId)?.nome || 'Selecionado'}</strong> possui aceitação garantida para sua Categoria (${state.profile === 'pme' ? 'PME' : 'CPF'}) e Idades. Esta é a sua melhor escolha técnica!`;
-                    noteClass = 'bg-blue-50 text-blue-800 border-blue-100';
-                } else if (state.hospitalId && !isMatch) {
-                     // Scenario B (simplified for demo)
-                     matchNote = `✨ Nota: Para sua segurança, aplicamos nossa inteligência de rede para garantir que você sempre tenha opções disponíveis.`;
-                     noteClass = 'bg-yellow-50 text-yellow-800 border-yellow-100';
-                } else {
-                     // Scenario D
-                     matchNote = ``;
-                     noteClass = 'hidden';
-                }
+                let noteClass = 'hidden';
 
                 // Tags Logic (Dynamic based on strings)
                 const tags = [];
@@ -1261,51 +1244,13 @@
             
             // Step 1: Hospital (Autocomplete)
             if (step === 1) {
-                const input = document.getElementById('hospital-search');
-                const list = document.getElementById('autocomplete-list');
-                let debounceTimer;
-
+                const input = document.getElementById('user-name');
                 if (input) {
-                    input.addEventListener('input', (e) => {
-                        clearTimeout(debounceTimer);
-                        const query = e.target.value;
-                        const spinner = document.getElementById('hospital-search-loading');
-                        
-                        if (query.length < 3) {
-                            list.classList.add('hidden');
-                            if(spinner) spinner.classList.add('hidden');
-                            return;
-                        }
-
-                        if(spinner) spinner.classList.remove('hidden');
-
-                        debounceTimer = setTimeout(async () => {
-                            try {
-                                const results = await buscarHospitaisAPI(query);
-                                if (results.length > 0) {
-                                    list.innerHTML = results.map(h => `
-                                        <div class="p-3 hover:bg-gray-100 cursor-pointer border-b last:border-0 text-sm text-gray-700" 
-                                             onclick="selectHospital('${h.id}', '${h.nome}')">
-                                            <i class="fas fa-hospital-alt mr-2 text-gray-400"></i> ${h.nome}
-                                        </div>
-                                    `).join('');
-                                    list.classList.remove('hidden');
-                                } else {
-                                    list.innerHTML = '<div class="p-3 text-sm text-gray-500 text-center">Nenhum hospital encontrado.</div>';
-                                    list.classList.remove('hidden');
-                                }
-                            } catch (e) {
-                                console.error(e);
-                            } finally {
-                                if(spinner) spinner.classList.add('hidden');
-                            }
-                        }, 500);
-                    });
-
-                    // Hide list on click outside
-                    document.addEventListener('click', (e) => {
-                        if (!input.contains(e.target) && !list.contains(e.target)) {
-                            list.classList.add('hidden');
+                    input.focus();
+                    input.addEventListener('keypress', function (e) {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            nextStep(2);
                         }
                     });
                 }
@@ -1337,14 +1282,6 @@
             }
         }
 
-        function selectHospital(id, name) {
-            state.hospitalId = id;
-            state.hospital = name;
-            document.getElementById('hospital-search').value = name;
-            document.getElementById('autocomplete-list').classList.add('hidden');
-            nextStep(2);
-        }
-        
         function updateLivesSummary() {
             // Helper if needed for step 2
         }
@@ -1374,7 +1311,7 @@
                         lives: state.lives,
                         profile: state.profile,
                         profession_id: state.professionId || null,
-                        hospital: state.hospital || null
+                        nome: state.nome || null
                     })
                 });
 
@@ -1382,25 +1319,10 @@
                 console.log(data);
                 if (data.success) {
                     if (data.plans_without_internacao && data.plans_without_internacao.length > 0) {
-                        // Separate by reason
-                        const missingHospital = data.plans_without_internacao.filter(p => p.reason === 'missing_hospital').map(p => p.name);
                         const noElective = data.plans_without_internacao.filter(p => p.reason === 'no_elective').map(p => p.name);
 
                         let msg = '';
                         
-                        if (missingHospital.length > 0) {
-                            msg += `
-                                <div class="bg-blue-50 border-l-4 border-blue-400 p-3 mb-3 text-left">
-                                    <h4 class="font-bold text-blue-800 text-sm mb-1"><i class="fas fa-info-circle mr-1"></i>Observação sobre a Rede Credenciada</h4>
-                                    <p class="text-xs text-blue-700 leading-relaxed">
-                                        Para os planos abaixo, o hospital <strong>${state.hospital}</strong> não consta na listagem oficial dos planos selecionados. No entanto, estes planos oferecem ampla rede de suporte na região.
-                                    </p>
-                                    <div class="mt-2 text-xs font-semibold text-blue-800 bg-white p-2 rounded border border-blue-100">
-                                        ${missingHospital.join(', ')}
-                                    </div>
-                                </div>`;
-                        }
-
                         if (noElective.length > 0) {
                             msg += `
                                 <div class="bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-3 text-left">
@@ -1412,23 +1334,22 @@
                                         ${noElective.join(', ')}
                                     </div>
                                     </div>`;
-                                    // <p class="text-xs text-yellow-700 leading-relaxed mb-2">
-                                    //     ⚠️ Para <strong>cirurgias eletivas e internações programadas</strong>, você será atendido em outros hospitais de excelência da rede credenciada destes planos.
-                                    // </p>
                         }
 
-                        msg += "<p class='text-sm text-gray-600 mt-2 text-center'>Deseja ver o comparativo completo mesmo assim?</p>";
-                        
-                        // Remove newlines from msg to prevent double BRs if showModal does replace
-                        msg = msg.replace(/\n/g, '');
+                        if (msg !== '') {
+                            msg += "<p class='text-sm text-gray-600 mt-2 text-center'>Deseja ver o comparativo completo mesmo assim?</p>";
+                            
+                            // Remove newlines from msg to prevent double BRs
+                            msg = msg.replace(/\n/g, '');
 
-                        showModal('Atenção - Detalhes da Rede', msg, 
-                            () => nextStep(5), // Confirm
-                            () => nextStep(4), // Cancel - Volta para o passo 4
-                            'Ver Comparativo', // Botão Confirmar
-                            'Revisar Planos'   // Botão Cancelar
-                        );
-                        return;
+                            showModal('Atenção - Detalhes da Rede', msg, 
+                                () => nextStep(5), // Confirm
+                                () => nextStep(4), // Cancel - Volta para o passo 4
+                                'Ver Comparativo', // Botão Confirmar
+                                'Revisar Planos'   // Botão Cancelar
+                            );
+                            return;
+                        }
                     }
                     nextStep(5);
                 } else {

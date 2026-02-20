@@ -50,8 +50,11 @@ class SendProposalController extends Controller
             if ($clientPhone) {
                 $apiResult = $this->whatsappService->sendPdf($clientPhone, $pdfClientContent, 'proposta-plano.pdf');
 
+                $clientName = $data['nome'] ?? 'Cliente';
+
                 // Action 3: Send Follow-up Message to Client
-                $msgClient = "O Dossiê SaúdeSelect " . date('Y') . " solicitado já está disponível acima. 📄\n\n" .
+                $msgClient = "Olá, {$clientName}! 👋\n\n" .
+                    "O Dossiê SaúdeSelect " . date('Y') . " solicitado já está disponível acima. 📄\n\n" .
                     "Este documento apresenta o detalhamento técnico da seleção realizada, com os respectivos valores e especificações de rede.\n\n" .
                     "A equipe de suporte analisará os critérios de aceitação para o perfil informado e entrará em contato para validar o match técnico, além de esclarecer eventuais dúvidas sobre carências ou procedimentos de adesão.\n\n" .
                     "Agradecemos por utilizar a inteligência da SaúdeSelect. 🚀";
@@ -75,11 +78,11 @@ class SendProposalController extends Controller
                 $selectedPlanNamesStr = "Ver PDF anexo";
 
                 $msgBroker = "📩 *NOVO LEAD CAPTURADO*\n\n" .
-                    "👤 *HISTÓRICO:* 🟢 PRIMEIRA CONSULTA\n" .
+                    "👤 *NOME:* {$clientName}\n" .
                     "📱 *ORIGEM:* 🌐 WEB | 📍 *CIDADE:* {$city} | 👥 *VIDAS:* {$livesCount}\n" .
                     "💼 *PERFIL:* {$profile}\n" .
                     "🛡️ *STATUS DO PERFIL:* ✅ VALIDADO\n" .
-                    "🏥 *HOSPITAL ALVO:* (Ver PDF) | 📊 *PLANOS:* {$selectedPlanNamesStr}\n\n" .
+                    "📊 *PLANOS:* {$selectedPlanNamesStr}\n\n" .
                     "💡 *VALIDAÇÃO " . date('Y') . ":* Cliente validado via sistema. O PDF gerado contém os valores e a rede.\n\n" .
                     "📄 *[CLIQUE AQUI PARA O PDF COMPLETO]* (Ver Recibo Acima)\n\n" .
                     "📲 *WhatsApp Cliente:* {$clientPhone}";

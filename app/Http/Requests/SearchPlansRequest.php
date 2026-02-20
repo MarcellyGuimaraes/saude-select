@@ -24,8 +24,7 @@ class SearchPlansRequest extends FormRequest
         return [
             'profile' => ['required', 'string', 'in:pme,adesao,cpf'],
             'lives' => ['required', 'array'],
-            'hospital' => ['nullable', 'string'],
-            'hospitalId' => ['nullable', 'integer'],
+            'nome' => ['nullable', 'string', 'max:255'],
             'regiao' => ['nullable', 'integer'],
             'profession_id' => ['nullable', 'string'],
         ];

@@ -419,7 +419,7 @@ class SimuladorOnlineService
     /**
      * Gera o HTML bruto da simulação para planos específicos.
      */
-    public function getSimulationRawHtml(array $planIds, array $lives, string $profile, ?string $professionId = null): string
+    public function getSimulationRawHtml(array $planIds, array $lives, string $profile, ?string $nome = null, ?string $professionId = null): string
     {
         $this->login();
 
@@ -446,7 +446,7 @@ class SimuladorOnlineService
         $textoInicial = "Primeiramente, agradecemos pelo seu contato.\r\nInformamos que os custos e as condições abaixo são determinadas por suas respectivas operadoras.\r\n";
 
         $params = [
-            'simulacao[destNome]' => '',
+            'simulacao[destNome]' => $nome ?? '',
             'simulacao[destContato]' => '',
             'simulacao[destEmail]' => '',
             'simulacao[tipoTabela]' => $tipoTabela,
