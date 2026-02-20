@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\PdfService;
 use App\Services\SimuladorOnlineService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class PropostaController extends Controller
 {
     public function __construct(protected
-        SimuladorOnlineService $simuladorService
+        SimuladorOnlineService $simuladorService, protected
+        PdfService $pdfService
         )
     {
     }
@@ -39,15 +42,28 @@ class PropostaController extends Controller
 
             $plansWithoutInternacao = SimuladorOnlineService::identifyPlansWithoutInternacao($clientHtml);
 
+            // PRÉ-GERAÇÃO DOS PDFs PARA EVITAR TIMEOUT NO PASSO FINAL
+            $pdfSystemContent = $this->pdfService->generateSystemPdf($systemHtml);
+            $pdfClientContent = $this->pdfService->generateClientPdf($clientHtml);
+
+            // Salvar no Storage local temporário
+            $clientFileName = 'client_' . uniqid() . '.pdf';
+            $systemFileName = 'system_' . uniqid() . '.pdf';
+
+            Storage::disk('local')->put("temp_propostas/{$clientFileName}", $pdfClientContent);
+            Storage::disk('local')->put("temp_propostas/{$systemFileName}", $pdfSystemContent);
+
             session(['simulacao_atual' => [
                     'planIds' => $data['planIds'],
                     'lives' => $data['lives'],
                     'profile' => $data['profile'],
                     'nome' => $data['nome'] ?? null,
-                    'raw_html' => $rawHtml,
+                    // 'raw_html' => $rawHtml, // Removing raw html since we now have the PDFs
                     'system_html' => $systemHtml,
                     'client_html' => $clientHtml,
                     'plans_without_internacao' => $plansWithoutInternacao,
+                    'pdf_client_path' => "temp_propostas/{$clientFileName}",
+                    'pdf_system_path' => "temp_propostas/{$systemFileName}",
                 ]]);
 
             return response()->json([
@@ -68,12 +84,13 @@ class PropostaController extends Controller
     {
         try {
             $data = session('simulacao_atual');
-            if (!$data || !isset($data['raw_html'])) {
+            if (!$data || !isset($data['client_html'])) {
                 return redirect()->route('home');
             }
 
             return view('proposta.index', [
-                'rawHtml' => $data['raw_html'],
+                // We use client_html now instead of raw_html because we removed it to save session space
+                'rawHtml' => $data['client_html'],
                 'planosParsed' => [],
                 'titulo' => 'Sua Proposta de Plano de Saúde',
                 'payloadInfo' => 'Simulação gerada via Simulador Online.',

@@ -2,17 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Mail\ProposalSystemMail;
-use App\Services\PdfService;
 use App\Services\WhatsApp\WhatsAppService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 
 class SendProposalController extends Controller
 {
     public function __construct(protected
-        PdfService $pdfService, protected
         WhatsAppService $whatsappService
         )
     {
@@ -26,80 +24,82 @@ class SendProposalController extends Controller
                 return response()->json(['success' => false, 'message' => 'Nenhuma simulação encontrada.'], 404);
             }
 
-            // 1. Generate PDFs
-            // We use the raw HTML already in session or re-generate if needed.
-            // Based on PropostaController, we have 'client_html' and 'system_html' keys.
-            $clientHtml = $data['client_html'] ?? null;
-            $systemHtml = $data['system_html'] ?? null;
+            $clientPhone = $request->input('phone');
 
-            if (!$clientHtml || !$systemHtml) {
-                return response()->json(['success' => false, 'message' => 'Dados da simulação incompletos.'], 400);
+            if (!$clientPhone) {
+                return response()->json(['success' => false, 'message' => 'Telefone não informado.'], 400);
             }
 
-            $pdfSystemContent = $this->pdfService->generateSystemPdf($systemHtml);
-            $pdfClientContent = $this->pdfService->generateClientPdf($clientHtml);
+            // 1. Load Pre-generated PDFs from Storage
+            $clientPdfPath = $data['pdf_client_path'] ?? null;
+            $systemPdfPath = $data['pdf_system_path'] ?? null;
+
+            if (!$clientPdfPath || !$systemPdfPath || !Storage::disk('local')->exists($clientPdfPath) || !Storage::disk('local')->exists($systemPdfPath)) {
+                return response()->json(['success' => false, 'message' => 'PDFs não encontrados. Por favor, refaça a simulação.'], 400);
+            }
+
+            $pdfClientContent = Storage::disk('local')->get($clientPdfPath);
+            $pdfSystemContent = Storage::disk('local')->get($systemPdfPath);
 
             // 2. Send Email to Admin/System (Backup)
-            $clientPhone = $request->input('phone');
             $adminEmail = 'renanldb93@gmail.com';
             Mail::to($adminEmail)->send(new \App\Mail\ProposalSystemMail($pdfSystemContent, 'proposta-sistema.pdf', $clientPhone));
 
             // 3. WhatsApp Automation Flow
             $apiResult = ['success' => false];
 
-            if ($clientPhone) {
-                $apiResult = $this->whatsappService->sendPdf($clientPhone, $pdfClientContent, 'proposta-plano.pdf');
+            $apiResult = $this->whatsappService->sendPdf($clientPhone, $pdfClientContent, 'proposta-plano.pdf');
 
-                $clientName = $data['nome'] ?? 'Cliente';
+            $clientName = $data['nome'] ?? 'Cliente';
 
-                // Action 3: Send Follow-up Message to Client
-                $msgClient = "Olá, {$clientName}! 👋\n\n" .
-                    "O Dossiê SaúdeSelect " . date('Y') . " solicitado já está disponível acima. 📄\n\n" .
-                    "Este documento apresenta o detalhamento técnico da seleção realizada, com os respectivos valores e especificações de rede.\n\n" .
-                    "A equipe de suporte analisará os critérios de aceitação para o perfil informado e entrará em contato para validar o match técnico, além de esclarecer eventuais dúvidas sobre carências ou procedimentos de adesão.\n\n" .
-                    "Agradecemos por utilizar a inteligência da SaúdeSelect. 🚀";
+            // Action 3: Send Follow-up Message to Client
+            $msgClient = "Olá, {$clientName}! 👋\n\n" .
+                "O Dossiê SaúdeSelect " . date('Y') . " solicitado já está disponível acima. 📄\n\n" .
+                "Este documento apresenta o detalhamento técnico da seleção realizada, com os respectivos valores e especificações de rede.\n\n" .
+                "A equipe de suporte analisará os critérios de aceitação para o perfil informado e entrará em contato para validar o match técnico, além de esclarecer eventuais dúvidas sobre carências ou procedimentos de adesão.\n\n" .
+                "Agradecemos por utilizar a inteligência da SaúdeSelect. 🚀";
 
-                $this->whatsappService->sendText($clientPhone, $msgClient);
+            $this->whatsappService->sendText($clientPhone, $msgClient);
 
-                // Action 4: Broker Alert (Inteligência Pós-Clique)
-                // Gather Data
-                $profile = ucfirst($data['profile'] ?? 'N/A');
-                $livesCount = 0;
-                if (isset($data['lives']) && is_array($data['lives'])) {
-                    foreach ($data['lives'] as $qtd) {
-                        if (is_numeric($qtd)) {
-                            $livesCount += $qtd;
-                        }
+            // Action 4: Broker Alert (Inteligência Pós-Clique)
+            // Gather Data
+            $profile = ucfirst($data['profile'] ?? 'N/A');
+            $livesCount = 0;
+            if (isset($data['lives']) && is_array($data['lives'])) {
+                foreach ($data['lives'] as $qtd) {
+                    if (is_numeric($qtd)) {
+                        $livesCount += $qtd;
                     }
                 }
-                $city = $data['city'] ?? 'N/A'; // Default to N/A if not found
-
-                // Get selected plans names
-                $selectedPlanNamesStr = "Ver PDF anexo";
-
-                $msgBroker = "📩 *NOVO LEAD CAPTURADO*\n\n" .
-                    "👤 *NOME:* {$clientName}\n" .
-                    "📱 *ORIGEM:* 🌐 WEB | 📍 *CIDADE:* {$city} | 👥 *VIDAS:* {$livesCount}\n" .
-                    "💼 *PERFIL:* {$profile}\n" .
-                    "🛡️ *STATUS DO PERFIL:* ✅ VALIDADO\n" .
-                    "📊 *PLANOS:* {$selectedPlanNamesStr}\n\n" .
-                    "💡 *VALIDAÇÃO " . date('Y') . ":* Cliente validado via sistema. O PDF gerado contém os valores e a rede.\n\n" .
-                    "📄 *[CLIQUE AQUI PARA O PDF COMPLETO]* (Ver Recibo Acima)\n\n" .
-                    "📲 *WhatsApp Cliente:* {$clientPhone}";
-
-                $adminPhoneTarget = '5521999999999'; // Admin Phone (Same as Sender)
-
-                $this->whatsappService->sendText($adminPhoneTarget, $msgBroker);
-                // Also send the system PDF to admin
-                $this->whatsappService->sendPdf($adminPhoneTarget, $pdfSystemContent, "Proposta_Sistema_{$clientPhone}.pdf");
             }
+            $city = $data['city'] ?? 'N/A'; // Default to N/A if not found
+
+            // Get selected plans names
+            $selectedPlanNamesStr = "Ver PDF anexo";
+
+            $msgBroker = "📩 *NOVO LEAD CAPTURADO*\n\n" .
+                "👤 *NOME:* {$clientName}\n" .
+                "📱 *ORIGEM:* 🌐 WEB | 📍 *CIDADE:* {$city} | 👥 *VIDAS:* {$livesCount}\n" .
+                "💼 *PERFIL:* {$profile}\n" .
+                "🛡️ *STATUS DO PERFIL:* ✅ VALIDADO\n" .
+                "📊 *PLANOS:* {$selectedPlanNamesStr}\n\n" .
+                "💡 *VALIDAÇÃO " . date('Y') . ":* Cliente validado via sistema. O PDF gerado contém os valores e a rede.\n\n" .
+                "📄 *[CLIQUE AQUI PARA O PDF COMPLETO]* (Ver Recibo Acima)\n\n" .
+                "📲 *WhatsApp Cliente:* {$clientPhone}";
+
+            $adminPhoneTarget = '5521999999999'; // Admin Phone Target
+
+            $this->whatsappService->sendText($adminPhoneTarget, $msgBroker);
+            // Also send the system PDF to admin
+            $this->whatsappService->sendPdf($adminPhoneTarget, $pdfSystemContent, "Proposta_Sistema_{$clientPhone}.pdf");
+
+            // Clean up temporary files
+            Storage::disk('local')->delete([$clientPdfPath, $systemPdfPath]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Proposta enviada com sucesso!',
-                'debug_api_response' => $apiResult
+                'message' => 'Proposta enviada com sucesso!'
             ]);
-
         }
         catch (\Throwable $e) {
             Log::error("Erro ao enviar proposta: " . $e->getMessage());
