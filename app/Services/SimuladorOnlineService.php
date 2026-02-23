@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Http;
 
 class SimuladorOnlineService
 {
-    protected const int DefaultRegionId = 2;
+    protected const DefaultRegionId = 2;
 
     protected const array AgeBracketKeys = [
         '0-18', '19-23', '24-28', '29-33', '34-38',
@@ -328,14 +328,15 @@ class SimuladorOnlineService
             $fullText = mb_strtoupper(($plan['operadora'] ?? '') . ' ' . ($plan['nome'] ?? '') . ' ' . ($plan['operadora_descricao'] ?? ''));
             $copartStatus = 'SEM_COPART'; // Padrão será SEM_COPART se não falar nada
 
-            if (str_contains($fullText, 'PARCIAL') || preg_match('/[0-9]+%/', $fullText)) {
-                // Se diz "Parcial" explícito ou cita um percentual (ex: 30%)
-                $copartStatus = 'COPART_PARCIAL';
-            } elseif (str_contains($fullText, 'COPART') || str_contains($fullText, 'COM COPART') || str_contains($fullText, 'C/ COPART')) {
-                // É com coparticipação tradicional sem percentual especificado
-                $copartStatus = 'COPART_TOTAL'; 
-            } elseif (str_contains($fullText, 'SEM COPART') || str_contains($fullText, 'S/ COPART')) {
+            // Verifica SEM COPART primeiro, pois a palavra "SEM COPART" contém "COPART" e cairia na regra de baixo incorretamente
+            if (str_contains($fullText, 'SEM') || str_contains($fullText, 'S/')) {
                 $copartStatus = 'SEM_COPART';
+            } elseif (str_contains($fullText, 'PARCIAL') || (preg_match('/[0-9]+%/', $fullText) && !str_contains($fullText, '100%'))) {
+                // Diz "Parcial" explícito ou cita um percentual que NÃO seja 100% (ex: 30%, 40%)
+                $copartStatus = 'COPART_PARCIAL';
+            } elseif (str_contains($fullText, 'COPART') || str_contains($fullText, 'COM') || str_contains($fullText, 'C/')) {
+                // É com coparticipação tradicional
+                $copartStatus = 'COPART_TOTAL'; 
             }
 
             $acomodacao = $plan['acomodacao'] === 'Apartamento' ? 'APT' : 'ENF';
