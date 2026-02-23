@@ -102,13 +102,6 @@ class SimuladorOnlineService
      */
     public function searchPlans(array $validatedInput): array
     {
-        $profile = $validatedInput['profile'] ?? 'cpf';
-        $tipoTabela = match ($profile) {
-            'pme' => 3,
-            'adesao' => 4,
-            default => 2,
-        };
-
         $lives = $validatedInput['lives'] ?? [];
         $faixas = [];
         $totalVidas = 0;
@@ -117,6 +110,13 @@ class SimuladorOnlineService
             $faixas[$index] = ['vidas' => $vidas];
             $totalVidas += $vidas;
         }
+
+        $profile = $validatedInput['profile'] ?? 'cpf';
+        $tipoTabela = match ($profile) {
+            'pme' => 3,
+            'adesao' => 4,
+            default => ($totalVidas >= 2) ? 1 : 2, // 1 = Familiar, 2 = Individual
+        };
 
         $payload = [
             'tipoTabela' => $tipoTabela,
