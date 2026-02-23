@@ -8,17 +8,17 @@
     "orientation": "portrait",
     "icons": [
         {
-            "src": "/favicon.svg",
+            "src": "/favicon.png",
             "sizes": "180x180",
-            "type": "image/svg+xml"
+            "type": "image/png"
         },
         {
-            "src": "/favicon.svg",
+            "src": "/favicon.png",
             "sizes": "192x192",
-            "type": "image/svg+xml"
+            "type": "image/png"
         },
         {
-            "src": "/favicon.svg",
+            "src": "/favicon.png",
             "sizes": "512x512",
             "type": "image/png"
         }
