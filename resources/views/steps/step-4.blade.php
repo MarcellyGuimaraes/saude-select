@@ -2,7 +2,7 @@
 <div id="step-4" class="step-content bg-gray-50 min-h-[600px]">
     <div class="sticky top-0 bg-white z-20 p-4 shadow-sm border-b">
         <h2 class="text-md font-bold text-gray-800">Melhores Opções para <span id="result-profile-name" class="text-blue-600">Seu Perfil</span></h2>
-        <p class="text-xs text-gray-500">Ordenado por: Menor Investimento</p>
+        <!-- <p class="text-xs text-gray-500">Ordenado por: Menor Investimento</p> -->
     </div>
 
     <div class="p-4 space-y-4 pb-24">
