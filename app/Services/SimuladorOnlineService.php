@@ -302,35 +302,49 @@ class SimuladorOnlineService
         $grouped = [];
 
         foreach ($planosValidos as $plan) {
-            $op = $plan['operadora'] ?? 'Outros';
+            $rawOp = $plan['operadora'] ?? 'Outros';
+            
+            // Extrair "Nome Base" mantendo os grupos de produtos importantes mas limpando o sufixo descritivo
+            $opParts = explode(' - ', $rawOp);
+            $baseOp = trim($opParts[0]);
+
+            // Se for "Bradesco Copart." que apareceu no JSON, limpa apenas os parênteses
+            if (str_contains($baseOp, 'BRADESCO')) {
+                 $baseOp = preg_replace('/ \(.*\)$/', '', $baseOp); // Resultará em "BRADESCO", "BRADESCO COPART.", "BRADESCO HOSPITALAR"
+                 $baseOp = trim($baseOp);
+            }
+            // Para outras marcas, manteremos como base até antes do traço
+            // O Amil e Amil One já vão vir naturalmente separados ("AMIL" e "AMIL ONE") antes do traço
+
+            
+            // Se limpou tudo acidentalmente, volta para o raw
+            $opKey = empty($baseOp) ? $rawOp : $baseOp;
             
             // Detectar Coparticipação
             $fullText = mb_strtoupper(($plan['operadora'] ?? '') . ' ' . ($plan['nome'] ?? '') . ' ' . ($plan['operadora_descricao'] ?? ''));
-            $copartStatus = 'SEM_COPART'; // Default? Or check specifically for "SEM"
+            $copartStatus = 'SEM_COPART'; // Padrão será SEM_COPART se não falar nada
 
             if (str_contains($fullText, 'PARCIAL')) {
                 $copartStatus = 'COPART_PARCIAL';
             } elseif (str_contains($fullText, 'COPART') || str_contains($fullText, 'COM COPART') || str_contains($fullText, 'C/ COPART')) {
-                // Se diz "Copart" mas não especificou "Parcial", assumimos Total ou Genérico (que trataremos como Categoria distinta de Sem)
+                // É com coparticipação tradicional
                 $copartStatus = 'COPART_TOTAL'; 
             } elseif (str_contains($fullText, 'SEM COPART') || str_contains($fullText, 'S/ COPART')) {
                 $copartStatus = 'SEM_COPART';
-            } else {
-                $copartStatus = 'STANDARD';
             }
 
             $acomodacao = $plan['acomodacao'] === 'Apartamento' ? 'APT' : 'ENF';
             
             $categoryKey = "{$acomodacao}_{$copartStatus}";
 
-            if (!isset($grouped[$op][$categoryKey])) {
-                $grouped[$op][$categoryKey] = $plan;
+            if (!isset($grouped[$opKey][$categoryKey])) {
+                $grouped[$opKey][$categoryKey] = $plan;
             }
         }
 
-        // Flatten results
+        // Flatten results, ignorando a chave da operadora agregada (ex: AMIL, BRADESCO) para a saída final
         $finalList = [];
-        foreach ($grouped as $op => $categories) {
+        foreach ($grouped as $brandGroup => $categories) {
             foreach ($categories as $plan) {
                 $finalList[] = $plan;
             }

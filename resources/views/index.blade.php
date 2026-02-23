@@ -1092,9 +1092,9 @@
                                     ? `<img src="${plano.operadora_logo}" class="h-6 mr-2 object-contain" alt="${plano.operadora}">` 
                                     : `<span class="font-bold text-gray-700 text-sm mr-2">${plano.operadora}</span>`}
                                 <div>
-                                    <h3 class="font-bold text-gray-800 text-sm leading-tight">${plano.nome}</h3>
+                                    <h3 class="font-bold text-gray-800 text-sm leading-tight">${plano.nome} - ${plano.operadora}</h3>
                                     <span class="text-[10px] text-gray-500 uppercase tracking-wide leading-tight mt-0.5">
-                                        ${plano.operadora}
+                                        ${plano.operadora_descricao}
                                     </span>
                                 </div>
                             </div>
