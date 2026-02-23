@@ -2,7 +2,7 @@
 <div id="step-1" class="step-content p-6">
     <div class="text-center mb-8 mt-2">
         <h2 class="text-lg font-bold text-gray-800 leading-snug">
-            💡 Para quem devemos preparar o Diagnóstico Inteligente?
+            � Quem será o titular do plano de saúde?
         </h2>
     </div>
 
@@ -28,7 +28,7 @@
 
     <!-- Botão de Ação -->
     <button onclick="nextStep(2)" class="w-full bg-azul-royal text-white py-4 rounded-xl font-black text-lg shadow-lg shadow-blue-500/30 hover:bg-blue-700 transition uppercase tracking-wide flex justify-center items-center">
-        GERAR MEU ACESSO PERSONALIZADO
+        LIBERAR CONSULTA PERSONALIZADA
     </button>
     
     <!-- Regra de Ouro (Premium/Footer) -->

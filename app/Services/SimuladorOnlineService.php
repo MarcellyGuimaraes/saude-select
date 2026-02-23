@@ -324,10 +324,11 @@ class SimuladorOnlineService
             $fullText = mb_strtoupper(($plan['operadora'] ?? '') . ' ' . ($plan['nome'] ?? '') . ' ' . ($plan['operadora_descricao'] ?? ''));
             $copartStatus = 'SEM_COPART'; // Padrão será SEM_COPART se não falar nada
 
-            if (str_contains($fullText, 'PARCIAL')) {
+            if (str_contains($fullText, 'PARCIAL') || preg_match('/[0-9]+%/', $fullText)) {
+                // Se diz "Parcial" explícito ou cita um percentual (ex: 30%)
                 $copartStatus = 'COPART_PARCIAL';
             } elseif (str_contains($fullText, 'COPART') || str_contains($fullText, 'COM COPART') || str_contains($fullText, 'C/ COPART')) {
-                // É com coparticipação tradicional
+                // É com coparticipação tradicional sem percentual especificado
                 $copartStatus = 'COPART_TOTAL'; 
             } elseif (str_contains($fullText, 'SEM COPART') || str_contains($fullText, 'S/ COPART')) {
                 $copartStatus = 'SEM_COPART';
