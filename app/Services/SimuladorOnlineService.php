@@ -274,6 +274,10 @@ class SimuladorOnlineService
                 $idadeMinima = 50;
             } elseif (str_contains($texto, '59+') || str_contains($texto, '+59')) {
                 $idadeMinima = 59;
+            } elseif (str_contains($texto, '40+') || str_contains($texto, '+40')) {
+                $idadeMinima = 40;
+            } elseif (str_contains($texto, '30+') || str_contains($texto, '+30')) {
+                $idadeMinima = 30;
             } elseif (str_contains($texto, 'senior') || str_contains($texto, 'sênior')) {
                 $idadeMinima = 49;
             }
