@@ -45,7 +45,7 @@
     </div>
 
     <div class="rodape">
-        Documento gerado por Saúde Select — {{ now()->format('d/m/Y H:i') }}
+        Documento gerado por Buscar Planos — {{ now()->format('d/m/Y H:i') }}
     </div>
 </body>
 </html>

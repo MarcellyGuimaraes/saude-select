@@ -10,7 +10,7 @@
     <meta name="keywords" content="plano de saúde, simulador online, cotação plano de saúde, unimed, bradesco saúde, amil, sulamérica, plano de saúde empresarial, plano de saúde familiar, plano de saúde rj, preços planos de saúde">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="{{ url()->current() }}">
-    <meta name="author" content="Saúde Select">
+    <meta name="author" content="Buscar Planos">
 
     <!-- Open Graph / Facebook / WhatsApp -->
     <meta property="og:type" content="website">
@@ -63,8 +63,8 @@
       "url": "{{ url('/') }}",
       "logo": "{{ asset('logo-site.png') }}",
       "sameAs": [
-        "https://www.facebook.com/saudeselect",
-        "https://www.instagram.com/saudeselect"
+        "https://www.facebook.com/buscarplanos",
+        "https://www.instagram.com/buscarplanos"
       ]
     }
     </script>
@@ -116,7 +116,7 @@
     <!-- Header & Barra de Progresso -->
     <header class="w-full max-w-md px-4 mb-6 sticky top-0 bg-[#F3F4F6] z-50 pt-2 pb-2">
         <div class="flex justify-center w-full mb-4 mt-2">
-            <img src="/logo-site.png" alt="Saúde Select" class="h-10 object-contain">
+            <img src="/logo-site.png" alt="Buscar Planos" class="h-10 object-contain">
         </div>
         <!-- Mensagem de erro de localização -->
         <div id="location-error" class="hidden mb-3 bg-red-50 border border-red-200 rounded-lg p-3 shadow-sm">
@@ -1445,7 +1445,7 @@
 
             fetch(url, {
                 headers: {
-                    'User-Agent': 'SaudeSelect/1.0'
+                    'User-Agent': 'buscarplanos/1.0'
                 }
             })
             .then(response => response.json())
