@@ -26,7 +26,7 @@
         <!-- Viralization Button -->
         <div class="bg-green-50 border border-green-100 p-4 rounded-xl">
             <p class="text-xs text-green-800 font-bold mb-2 leading-tight">Este diagnóstico foi útil? Ajude um amigo de <span id="city-name-viral"></span> a economizar em {{ date('Y') }} também! 🚀</p>
-            <a href="https://wa.me/?text=Oi!%20Acabei%20de%20fazer%20um%20diagn%C3%B3stico%20de%20sa%C3%BAde%20na%20Sa%C3%BAdeSelect%20e%20vi%20os%20pre%C3%A7os%20para%20{{ date('Y') }}.%20Vale%20a%20pena,%20veja%20aqui:%20https://buscarplanos.com.br" 
+            <a href="https://wa.me/?text=Oi!%20Acabei%20de%20fazer%20um%20diagn%C3%B3stico%20de%20sa%C3%BAde%20na%20BuscarPlanos%20e%20vi%20os%20pre%C3%A7os%20para%20{{ date('Y') }}.%20Vale%20a%20pena,%20veja%20aqui:%20https://buscarplanos.com.br" 
                target="_blank"
                class="block w-full bg-green-500 text-white py-3 rounded-lg font-bold text-sm hover:bg-green-600 transition flex items-center justify-center gap-2">
                 <i class="fab fa-whatsapp"></i> RECOMENDAR NO WHATSAPP
