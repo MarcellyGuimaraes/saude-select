@@ -41,7 +41,6 @@
     <title>SaúdeSelect {{ date('Y') }} - Compare Planos de Saúde Online</title>
     
     <!-- JSON-LD Structured Data -->
-    <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
     {
       "@@context": "https://schema.org",
