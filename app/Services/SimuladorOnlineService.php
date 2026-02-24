@@ -12,7 +12,7 @@ class SimuladorOnlineService
 {
     protected const DefaultRegionId = 2;
 
-    protected const array AgeBracketKeys = [
+    protected const AgeBracketKeys = [
         '0-18', '19-23', '24-28', '29-33', '34-38',
         '39-43', '44-48', '49-53', '54-58', '59+',
     ];

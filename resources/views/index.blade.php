@@ -17,7 +17,7 @@
     <meta property="og:url" content="{{ url()->current() }}">
     <meta property="og:title" content="SaúdeSelect - Simulador de Planos de Saúde Online">
     <meta property="og:description" content="Compare os melhores planos de saúde em segundos. Cotação online gratuita das principais operadoras do Brasil.">
-    <meta property="og:image" content="{{ asset('apple-touch-icon.png') }}">
+    <meta property="og:image" content="{{ asset('logo-site.png') }}">
     <meta property="og:site_name" content="SaúdeSelect">
     <meta property="og:locale" content="pt_BR">
 
@@ -26,12 +26,11 @@
     <meta property="twitter:url" content="{{ url()->current() }}">
     <meta property="twitter:title" content="SaúdeSelect - Simulador de Planos de Saúde Online">
     <meta property="twitter:description" content="Compare preços e coberturas dos melhores planos de saúde. Simulação rápida e fácil.">
-    <meta property="twitter:image" content="{{ asset('apple-touch-icon.png') }}">
+    <meta property="twitter:image" content="{{ asset('logo-site.png') }}">
 
     <!-- Polices -->
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-    <!-- <link rel="alternate icon" href="/favicon.ico" sizes="any"> -->
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="icon" href="/logo-app.png" type="image/png">
+    <link rel="apple-touch-icon" href="/logo-app.png">
 
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json">
@@ -62,7 +61,7 @@
       "@@type": "Organization",
       "name": "SaúdeSelect",
       "url": "{{ url('/') }}",
-      "logo": "{{ asset('apple-touch-icon.png') }}",
+      "logo": "{{ asset('logo-site.png') }}",
       "sameAs": [
         "https://www.facebook.com/saudeselect",
         "https://www.instagram.com/saudeselect"
@@ -116,6 +115,9 @@
 
     <!-- Header & Barra de Progresso -->
     <header class="w-full max-w-md px-4 mb-6 sticky top-0 bg-[#F3F4F6] z-50 pt-2 pb-2">
+        <div class="flex justify-center w-full mb-4 mt-2">
+            <img src="/logo-site.png" alt="Saúde Select" class="h-10 object-contain">
+        </div>
         <!-- Mensagem de erro de localização -->
         <div id="location-error" class="hidden mb-3 bg-red-50 border border-red-200 rounded-lg p-3 shadow-sm">
             <div class="flex items-start">
