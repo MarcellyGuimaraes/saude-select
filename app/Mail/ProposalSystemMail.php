@@ -23,7 +23,7 @@ class ProposalSystemMail extends Mailable
 
     public function build()
     {
-        $subject = 'Nova Simulação - SaúdeSelect';
+        $subject = 'Nova Simulação - BuscarPlanos';
         if ($this->phone) {
             $subject .= " - Cliente: {$this->phone}";
         }

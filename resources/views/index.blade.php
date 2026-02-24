@@ -15,16 +15,16 @@
     <!-- Open Graph / Facebook / WhatsApp -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ url()->current() }}">
-    <meta property="og:title" content="SaúdeSelect - Simulador de Planos de Saúde Online">
+    <meta property="og:title" content="BuscarPlanos - Simulador de Planos de Saúde Online">
     <meta property="og:description" content="Compare os melhores planos de saúde em segundos. Cotação online gratuita das principais operadoras do Brasil.">
     <meta property="og:image" content="{{ asset('logo-site.png') }}">
-    <meta property="og:site_name" content="SaúdeSelect">
+    <meta property="og:site_name" content="BuscarPlanos">
     <meta property="og:locale" content="pt_BR">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="{{ url()->current() }}">
-    <meta property="twitter:title" content="SaúdeSelect - Simulador de Planos de Saúde Online">
+    <meta property="twitter:title" content="BuscarPlanos - Simulador de Planos de Saúde Online">
     <meta property="twitter:description" content="Compare preços e coberturas dos melhores planos de saúde. Simulação rápida e fácil.">
     <meta property="twitter:image" content="{{ asset('logo-site.png') }}">
 
@@ -38,14 +38,14 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-    <title>SaúdeSelect {{ date('Y') }} - Compare Planos de Saúde Online</title>
+    <title>BuscarPlanos {{ date('Y') }} - Compare Planos de Saúde Online</title>
     
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
     {
       "@@context": "https://schema.org",
       "@@type": "WebSite",
-      "name": "SaúdeSelect",
+      "name": "BuscarPlanos",
       "url": "{{ url('/') }}",
       "potentialAction": {
         "@@type": "SearchAction",
@@ -58,7 +58,7 @@
     {
       "@@context": "https://schema.org",
       "@@type": "Organization",
-      "name": "SaúdeSelect",
+      "name": "BuscarPlanos",
       "url": "{{ url('/') }}",
       "logo": "{{ asset('logo-site.png') }}",
       "sameAs": [

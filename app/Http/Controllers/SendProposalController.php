@@ -54,10 +54,10 @@ class SendProposalController extends Controller
 
             // Action 3: Send Follow-up Message to Client
             $msgClient = "Olá, {$clientName}! 👋\n\n" .
-                "O Dossiê SaúdeSelect " . date('Y') . " solicitado já está disponível acima. 📄\n\n" .
+                "O Dossiê BuscarPlanos " . date('Y') . " solicitado já está disponível acima. 📄\n\n" .
                 "Este documento apresenta o detalhamento técnico da seleção realizada, com os respectivos valores e especificações de rede.\n\n" .
                 "A equipe de suporte analisará os critérios de aceitação para o perfil informado e entrará em contato para validar o match técnico, além de esclarecer eventuais dúvidas sobre carências ou procedimentos de adesão.\n\n" .
-                "Agradecemos por utilizar a inteligência da SaúdeSelect. 🚀";
+                "Agradecemos por utilizar a inteligência da BuscarPlanos. 🚀";
 
             $this->whatsappService->sendText($clientPhone, $msgClient);
 

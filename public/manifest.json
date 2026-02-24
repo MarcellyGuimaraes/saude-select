@@ -1,6 +1,6 @@
 {
-    "name": "SaúdeSelect",
-    "short_name": "SaúdeSelect",
+    "name": "BuscarPlanos",
+    "short_name": "BuscarPlanos",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#FFFFFF",

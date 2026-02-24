@@ -8,7 +8,7 @@
         </div>
         <h2 class="text-2xl font-bold text-gray-800 mb-2">Sucesso! 🚀</h2>
         <p class="text-gray-600 text-sm leading-relaxed max-w-md mx-auto">
-            O <strong>Dossiê SaúdeSelect {{ date('Y') }}</strong> foi enviado para o seu WhatsApp com sucesso.
+            O <strong>Dossiê BuscarPlanos {{ date('Y') }}</strong> foi enviado para o seu WhatsApp com sucesso.
             <br><br>
             A equipe técnica já recebeu seu perfil e em breve validará sua elegibilidade para as tabelas selecionadas.
         </p>
@@ -17,7 +17,7 @@
     <div class="space-y-4 max-w-sm mx-auto mb-8">
         <!-- PWA Button -->
         <div class="bg-blue-50 border border-blue-100 p-4 rounded-xl">
-            <p class="text-xs text-blue-800 font-bold mb-2">Deseja salvar a SaúdeSelect no seu celular?</p>
+            <p class="text-xs text-blue-800 font-bold mb-2">Deseja salvar a BuscarPlanos no seu celular?</p>
             <button onclick="installPWA()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold text-sm hover:bg-blue-700 transition flex items-center justify-center gap-2">
                 <i class="fas fa-mobile-alt"></i> ADICIONAR À TELA INICIAL
             </button>
@@ -37,7 +37,7 @@
     <!-- Legal Footer -->
     <div class="border-t border-gray-100 pt-6 mt-8">
         <div class="text-[10px] text-gray-400 leading-relaxed max-w-lg mx-auto text-justify">
-            <p class="font-bold text-center mb-2">SaúdeSelect – Inteligência e Seleção de Benefícios</p>
+            <p class="font-bold text-center mb-2">BuscarPlanos – Inteligência e Seleção de Benefícios</p>
             <p class="text-center mb-2">Uma plataforma de tecnologia e consultoria operada por: Renan Lima <br> Consultor Técnico SUSEP: 231152113 <br> Número de telefone: (21) 98012-7961</p>
             
             <p class="mb-2">
