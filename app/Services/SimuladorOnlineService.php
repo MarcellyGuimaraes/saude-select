@@ -727,7 +727,7 @@ class SimuladorOnlineService
             $node->parentNode?->removeChild($node);
         }
 
-        // Ajusta logotipo principal da simulação para usar a marca Saúde Select (somente texto, sem imagem)
+        // Ajusta logotipo principal da simulação para usar a marca Buscar Planos (somente texto, sem imagem)
         /** @var \DOMElement|null $simulacao */
         $simulacao = $outXpath->query('//div[contains(@class,"simulacao") and contains(@class,"printable")]')->item(0);
         if ($simulacao instanceof \DOMElement) {
@@ -739,7 +739,7 @@ class SimuladorOnlineService
                     while ($child->firstChild !== null) {
                         $child->removeChild($child->firstChild);
                     }
-                    $span = $outDom->createElement('span', 'Saúde Select');
+                    $span = $outDom->createElement('span', 'Buscar Planos');
                     $span->setAttribute('style', 'font-weight: 700; font-size: 16pt; color: #1e40af;');
                     $child->appendChild($span);
 
