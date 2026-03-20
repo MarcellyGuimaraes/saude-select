@@ -46,7 +46,51 @@
             
             <div class="flex justify-center gap-4 mt-4">
                 <a href="#" class="text-gray-400 hover:text-blue-500 transition border-b border-dashed border-gray-300">Termos de Uso</a>
-                <a href="#" class="text-gray-400 hover:text-blue-500 transition border-b border-dashed border-gray-300">Privacidade (LGPD)</a>
+                <a href="#" onclick="openPrivacyModal(); return false;" class="text-gray-400 hover:text-blue-500 transition border-b border-dashed border-gray-300">Privacidade (LGPD)</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Privacy Modal -->
+    <div id="privacy-modal" class="fixed inset-0 z-[120] hidden">
+        <div class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onclick="closePrivacyModal()"></div>
+        <div class="absolute inset-x-0 bottom-0 md:top-20 md:bottom-auto md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-lg bg-white rounded-t-3xl md:rounded-2xl shadow-2xl transform transition-all duration-300 translate-y-0 flex flex-col max-h-[85vh] overflow-hidden">
+            <div class="p-5 border-b border-gray-100 flex justify-between items-center">
+                <div>
+                    <h3 class="font-bold text-gray-800 text-lg">Política de Privacidade (LGPD)</h3>
+                    <p class="text-xs text-gray-500 mt-1">Como usamos sua localização para personalizar a experiência</p>
+                </div>
+                <button onclick="closePrivacyModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="p-5 overflow-y-auto text-justify">
+                <p class="text-[11px] text-gray-600 leading-relaxed">
+                    Para exibir planos regionais, podemos estimar sua <strong>cidade</strong> com base no seu <strong>endereço IP</strong> no primeiro acesso.
+                    Essa estimativa é aproximada e não depende de permissão de GPS do navegador.
+                </p>
+
+                <p class="text-[11px] text-gray-600 leading-relaxed mt-3">
+                    Se você optar por usar sua localização com <strong>GPS</strong>, o navegador pode solicitar acesso à localização precisa.
+                    Nesses casos, a cidade é calculada a partir de coordenadas fornecidas pelo dispositivo.
+                </p>
+
+                <p class="text-[11px] text-gray-600 leading-relaxed mt-3">
+                    Para realizar a estimativa/consulta geográfica, podemos utilizar serviços de terceiros, como:
+                    <strong>ipapi.co</strong> (estimativa por IP) e <strong>Nominatim (OpenStreetMap)</strong> (geocodificação reversa).
+                    Esses serviços recebem dados necessários para processar a localização (como IP e/ou coordenadas).
+                </p>
+
+                <p class="text-[11px] text-gray-600 leading-relaxed mt-3">
+                    Você pode continuar usando o site mesmo sem compartilhar localização com GPS. Para dúvidas e solicitações relacionadas aos seus dados, você pode entrar em contato com nosso suporte.
+                </p>
+            </div>
+
+            <div class="bg-gray-50 p-4 flex justify-end">
+                <button onclick="closePrivacyModal()" class="px-5 py-2.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition text-sm">
+                    Entendi
+                </button>
             </div>
         </div>
     </div>
@@ -59,6 +103,24 @@
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
+    });
+
+    function openPrivacyModal() {
+        const modal = document.getElementById('privacy-modal');
+        if (!modal) return;
+
+        modal.classList.remove('hidden');
+    }
+
+    function closePrivacyModal() {
+        const modal = document.getElementById('privacy-modal');
+        if (!modal) return;
+
+        modal.classList.add('hidden');
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closePrivacyModal();
     });
 
     function installPWA() {

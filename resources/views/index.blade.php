@@ -155,7 +155,7 @@
                 <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-white rounded-t-3xl md:rounded-t-2xl">
                     <div>
                         <h3 class="font-bold text-gray-800 text-lg">Onde você está?</h3>
-                        <p class="text-xs text-gray-500">Defina sua localização para ver planos regionais.</p>
+                        <p class="text-xs text-gray-500">Por padrão, estimamos sua cidade por IP. Para mais precisão, você pode usar GPS.</p>
                     </div>
                     <button onclick="closeLocationModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition">
                         <i class="fas fa-times"></i>
@@ -180,7 +180,7 @@
                         <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-white transition">
                             <i class="fas fa-location-arrow text-sm"></i>
                         </div>
-                        <span class="text-sm">Usar minha localização atual</span>
+                        <span class="text-sm">Usar GPS (com permissão)</span>
                     </button>
 
                     <!-- Conteúdo Inicial: Cidades Sugeridas -->
@@ -225,7 +225,7 @@
         <div class="p-8 text-center min-h-[500px] flex flex-col justify-center items-center">
             <i class="fas fa-map-marker-alt text-6xl text-blue-500 mb-4 animate-pulse"></i>
             <h2 class="text-xl font-bold text-gray-800 mb-2">Aguardando Localização</h2>
-            <p class="text-gray-600 mb-6 text-sm px-4">Por favor, permita o acesso à sua localização para continuar.</p>
+            <p class="text-gray-600 mb-6 text-sm px-4">Detectando sua cidade por IP. Se quiser mais precisão, você pode ajustar depois usando GPS.</p>
             <div class="flex items-center justify-center">
                 <i class="fas fa-spinner fa-spin text-2xl text-blue-600"></i>
             </div>
@@ -1568,7 +1568,9 @@
 
         // Solicita localização quando a página carregar
         document.addEventListener('DOMContentLoaded', () => {
-            requestLocation();
+            const locationText = document.getElementById('location-text');
+            if (locationText) locationText.innerText = 'Detectando por IP...';
+            fallbackToIP();
         });
     </script>
     <script>
