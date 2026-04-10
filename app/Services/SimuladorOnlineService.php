@@ -163,7 +163,7 @@ class SimuladorOnlineService
         $formData['simulacao[adesao][opes]'] = '';
         $formData['simulacao[adesao][administradora]'] = '';
         $formData['simulacao[adesao][entidade]'] = '';
-        
+
         // Map Profession ID if available
         $profId = $validatedInput['profession_id'] ?? '';
         $formData['simulacao[adesao][profissao]'] = ($profile === 'adesao') ? $profId : '';
@@ -268,7 +268,7 @@ class SimuladorOnlineService
         $planosValidos = array_filter($planos, function (array $plan) use ($lives): bool {
             $rawText = ($plan['nome'] ?? '').' '.($plan['operadora'] ?? '').' '.($plan['operadora_descricao'] ?? '');
             $texto = mb_strtolower($rawText);
-            
+
             $idadeMinima = null;
             if (str_contains($texto, '50+') || str_contains($texto, '+50')) {
                 $idadeMinima = 50;
@@ -307,7 +307,7 @@ class SimuladorOnlineService
 
         foreach ($planosValidos as $plan) {
             $rawOp = $plan['operadora'] ?? 'Outros';
-            
+
             // Extrair "Nome Base" mantendo os grupos de produtos importantes mas limpando o sufixo descritivo
             $opParts = explode(' - ', $rawOp);
             $baseOp = trim($opParts[0]);
@@ -320,10 +320,10 @@ class SimuladorOnlineService
             // Para outras marcas, manteremos como base até antes do traço
             // O Amil e Amil One já vão vir naturalmente separados ("AMIL" e "AMIL ONE") antes do traço
 
-            
+
             // Se limpou tudo acidentalmente, volta para o raw
             $opKey = empty($baseOp) ? $rawOp : $baseOp;
-            
+
             // Detectar Coparticipação
             $fullText = mb_strtoupper(($plan['operadora'] ?? '') . ' ' . ($plan['nome'] ?? '') . ' ' . ($plan['operadora_descricao'] ?? ''));
             $copartStatus = 'SEM_COPART'; // Padrão será SEM_COPART se não falar nada
@@ -336,11 +336,11 @@ class SimuladorOnlineService
                 $copartStatus = 'COPART_PARCIAL';
             } elseif (str_contains($fullText, 'COPART') || str_contains($fullText, 'COM') || str_contains($fullText, 'C/')) {
                 // É com coparticipação tradicional
-                $copartStatus = 'COPART_TOTAL'; 
+                $copartStatus = 'COPART_TOTAL';
             }
 
             $acomodacao = $plan['acomodacao'] === 'Apartamento' ? 'APT' : 'ENF';
-            
+
             $categoryKey = "{$acomodacao}_{$copartStatus}";
 
             if (!isset($grouped[$opKey][$categoryKey])) {
@@ -432,7 +432,7 @@ class SimuladorOnlineService
     {
         $planIds = [408270, 420159, 384619];
         $lives = ['29-33' => 2];
-        
+
         return $this->getSimulationRawHtml($planIds, $lives, 'adesao');
     }
 
@@ -455,7 +455,7 @@ class SimuladorOnlineService
         }
 
         $totalVidas = array_sum($lives);
-        
+
         $novaPageHtml = $this->client()->get($this->baseUrl.'/simulacao/nova')->body();
         $csrfToken = null;
         if (preg_match('/name="simulacao\[_token\]"\s+value="([^"]+)"/', $novaPageHtml, $matches)) {
@@ -483,7 +483,7 @@ class SimuladorOnlineService
         foreach ($params as $k => $v) {
             $bodyParts[] = rawurlencode($k).'='.rawurlencode($v);
         }
-        
+
         foreach ([1, 2, 3, 4, 5] as $v) {
             $bodyParts[] = rawurlencode('simulacao[info][]').'='.$v;
         }
@@ -503,11 +503,11 @@ class SimuladorOnlineService
         $bodyParts[] = rawurlencode('simulacao[adesao][opes]').'=';
         $bodyParts[] = rawurlencode('simulacao[adesao][administradora]').'=';
         $bodyParts[] = rawurlencode('simulacao[adesao][entidade]').'=';
-        
+
         // Inject Profession ID if Adesao
         $profValue = ($profile === 'adesao' && $professionId) ? $professionId : '';
         $bodyParts[] = rawurlencode('simulacao[adesao][profissao]').'='.rawurlencode($profValue);
-        
+
         if ($csrfToken) {
             $bodyParts[] = rawurlencode('simulacao[_token]').'='.rawurlencode($csrfToken);
         }
@@ -558,7 +558,7 @@ class SimuladorOnlineService
         $xpath = new DOMXPath($dom);
 
         $plansWithoutInternacao = [];
-        
+
         // Normalize search term if present
         $normalizedTarget = $targetHospital ? self::normalizeString($targetHospital) : null;
 
@@ -569,14 +569,14 @@ class SimuladorOnlineService
             if (!$nomeOperadora) {
                $nomeOperadora = trim($xpath->query('.//div[contains(@class, "logotipo")]/p', $operadora)->item(0)?->textContent ?? 'Plano Desconhecido');
             }
-            
+
             $hasH = false;
             $hospitalFound = false;
 
             foreach ($xpath->query('.//div[contains(@class,"bloco")]', $operadora) as $bloco) {
                 /** @var \DOMElement $bloco */
                 $h4 = $xpath->query('.//h4', $bloco)->item(0);
-                
+
                 // Verifica bloco de Rede Credenciada
                 if ($h4 && trim($h4->textContent) === 'Rede Credenciada') {
                     $textoBloco = $bloco->textContent;
@@ -587,17 +587,17 @@ class SimuladorOnlineService
                         // Using normalized strings for comparison
                         if (str_contains($normalizedBloco, $normalizedTarget)) {
                             $hospitalFound = true;
-                            
-                            // Check for H in the original text or normalized? 
+
+                            // Check for H in the original text or normalized?
                             // The "H" usually appears as " - H" or " (H)" or just " H" at end of line.
-                            // Let's use a robust regex on the ORIGINAL text to preserve case if needed, 
+                            // Let's use a robust regex on the ORIGINAL text to preserve case if needed,
                             // but actually "H" is simple.
                             // Regex covers:
                             // 1. " - H" (space hyphen space H)
                             // 2. "(H)" (parentheses H)
                             // 3. " H" (space H) at end of a name/line (less safe, might match middle name starting with H)
                             // Safer validation: " - H" is the standard from Simulador. "(H)" is another common one.
-                            // We look for these patterns specifically near the hospital name? 
+                            // We look for these patterns specifically near the hospital name?
                             // Complex to find "near" in a blob.
                             // Rule: if hospital is found, does the block *contain* the H indicator?
                             // Issue: If there are multiple hospitals, we might match the H of another hospital.
@@ -606,7 +606,7 @@ class SimuladorOnlineService
                             // Let's try to be smarter: split block by lines (often separated by <br> or newlines)
                             // But $bloco->textContent strips <br> mostly or joins them.
                             // Let's stick to "if block contains - H" for now as per previous logic, just improved regex.
-                            
+
                             // Regex Explanation:
                             // \s : whitespace
                             // [-\(]? : optional hyphen or open parenthesis
@@ -614,7 +614,12 @@ class SimuladorOnlineService
                             // H : literal H
                             // [\)]? : optional close parenthesis
                             // \b : word boundary (so it doesn't match House)
-                            if (preg_match('/(\s-\s*H\b|\(H\))/i', $textoBloco)) {
+                            // Regex Explanation:
+                            // - Allow " - H", "(H)" with or without "NE" after "H":
+                            //   - \s-\s*H(\s*NE)?\b matches: " - H", " - H NE", etc.
+                            //   - \(H(\s*NE)?\) matches: "(H)", "(H NE)", etc.
+                            // The "NE" (Normal/Não Especificado) may or may not be present after "H".
+                            if (preg_match('/(\s-\s*H(\s*NE)?\b|\(H(\s*NE)?\))/i', $textoBloco)) {
                                 $hasH = true;
                             }
                         }
@@ -625,7 +630,7 @@ class SimuladorOnlineService
                         }
                     }
                     // Se já achou rede credenciada, break
-                    break; 
+                    break;
                 }
             }
 
