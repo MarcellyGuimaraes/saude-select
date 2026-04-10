@@ -614,18 +614,13 @@ class SimuladorOnlineService
                             // H : literal H
                             // [\)]? : optional close parenthesis
                             // \b : word boundary (so it doesn't match House)
-                            // Regex Explanation:
-                            // - Allow " - H", "(H)" with or without "NE" after "H":
-                            //   - \s-\s*H(\s*NE)?\b matches: " - H", " - H NE", etc.
-                            //   - \(H(\s*NE)?\) matches: "(H)", "(H NE)", etc.
-                            // The "NE" (Normal/Não Especificado) may or may not be present after "H".
-                            if (preg_match('/(\s-\s*H(\s*NE)?\b|\(H(\s*NE)?\))/i', $textoBloco)) {
+                            if (preg_match('/(\s-\s*H\b|\(H\))/i', $textoBloco) || preg_match('/(\s-\s*NE\b|\(NE\))/i', $textoBloco) ) {
                                 $hasH = true;
                             }
                         }
                     } else {
                         // Lógica Genérica (sem hospital alvo)
-                        if (preg_match('/(\s-\s*H\b|\(H\))/i', $textoBloco)) {
+                        if (preg_match('/(\s-\s*H\b|\(H\))/i', $textoBloco) || preg_match('/(\s-\s*NE\b|\(NE\))/i', $textoBloco)) {
                             $hasH = true;
                         }
                     }
