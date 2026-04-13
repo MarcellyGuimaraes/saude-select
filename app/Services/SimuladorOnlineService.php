@@ -614,13 +614,15 @@ class SimuladorOnlineService
                             // H : literal H
                             // [\)]? : optional close parenthesis
                             // \b : word boundary (so it doesn't match House)
-                            if (preg_match('/(\s-\s*H\b|\(H\))/i', $textoBloco) || preg_match('/(\s-\s*NE\b|\(NE\))/i', $textoBloco) ) {
+                            // Considera "NE" (não especificado) como equivalente a "H" para suprimir aviso
+                            // pois o simulador pode estar desatualizado e deixar a legenda incompleta.
+                            if (preg_match('/(\s*[-–]\s*(H|NE)\b|\((H|NE)\)|\bNE\b)/i', $textoBloco)) {
                                 $hasH = true;
                             }
                         }
                     } else {
                         // Lógica Genérica (sem hospital alvo)
-                        if (preg_match('/(\s-\s*H\b|\(H\))/i', $textoBloco) || preg_match('/(\s-\s*NE\b|\(NE\))/i', $textoBloco)) {
+                        if (preg_match('/(\s*[-–]\s*(H|NE)\b|\((H|NE)\)|\bNE\b)/i', $textoBloco)) {
                             $hasH = true;
                         }
                     }
