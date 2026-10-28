@@ -36,10 +36,15 @@
         .conteudo-proposta hr { border: none; border-top: 1px solid #cbd5e1; margin: 12px 0; }
         .conteudo-proposta .assinatura { margin-top: 12px; padding: 8px 0; font-size: 9pt; }
         .conteudo-proposta .footer { font-size: 8pt; color: #64748b; margin: 8px 0; }
+        .localizacao { font-size: 10pt; color: #1e293b; margin-bottom: 10px; padding: 6px 8px; background: #f1f5f9; border-left: 3px solid #1e40af; }
         .rodape { margin-top: 16px; padding-top: 8px; border-top: 1px solid #cbd5e1; font-size: 8pt; color: #64748b; text-align: center; }
     </style>
 </head>
 <body>
+    @if(!empty($cidade))
+        <div class="localizacao"><strong>Cidade:</strong> {{ $cidade }}</div>
+    @endif
+
     <div class="conteudo-proposta">
         {!! $content ?? '' !!}
     </div>

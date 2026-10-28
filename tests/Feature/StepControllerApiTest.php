@@ -15,7 +15,7 @@ test('buscar hospitais returns success and hospitais when service returns data',
     mock(SimuladorOnlineService::class)
         ->shouldReceive('searchHospitalsForAutocomplete')
         ->once()
-        ->with('santa')
+        ->with('santa', null)
         ->andReturn([
             'hospitais' => [
                 ['id' => 1, 'nome' => 'Santa Casa'],

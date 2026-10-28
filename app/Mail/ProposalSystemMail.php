@@ -13,12 +13,14 @@ class ProposalSystemMail extends Mailable
     public $pdfContent;
     public $pdfName;
     public $phone;
+    public $city;
 
-    public function __construct($pdfContent, $pdfName = 'proposta.pdf', $phone = null)
+    public function __construct($pdfContent, $pdfName = 'proposta.pdf', $phone = null, $city = null)
     {
         $this->pdfContent = $pdfContent;
         $this->pdfName = $pdfName;
         $this->phone = $phone;
+        $this->city = $city;
     }
 
     public function build()

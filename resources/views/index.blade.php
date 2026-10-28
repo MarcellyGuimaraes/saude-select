@@ -262,6 +262,7 @@
             selectedPlans: [],
             locationGranted: false,
             city: null,
+            stateName: null,
             planos: [],
             planosPaginaAtual: 1,
             regionId: 2 // Default: Rio de Janeiro
@@ -400,6 +401,7 @@
 
         function selectCity(city, stateName) {
             state.city = city;
+            state.stateName = stateName || null;
             
             // Map state name to ID
             let regionId = REGION_MAP[stateName] || 2; // Default to Rio if not found
@@ -1312,7 +1314,9 @@
                         lives: state.lives,
                         profile: state.profile,
                         profession_id: state.professionId || null,
-                        nome: state.nome || null
+                        nome: state.nome || null,
+                        city: state.city || null,
+                        state_name: state.stateName || null
                     })
                 });
 
@@ -1467,6 +1471,7 @@
                     updateLocationUI(city, stateName);
 
                     state.city = city;
+                    state.stateName = stateName || null;
                     
                     // Update Region ID based on detected state
                     if (stateName && REGION_MAP[stateName]) {
@@ -1501,6 +1506,7 @@
                     updateLocationUI(city, stateName);
                     
                     state.city = city;
+                    state.stateName = stateName || null;
                      // Update Region ID based on detected state
                      // ipapi region key matches our map mostly
                     if (stateName && REGION_MAP[stateName]) {
@@ -1515,6 +1521,8 @@
                     console.error('Erro ao obter loc via IP:', err);
                      // Último caso: Default
                     updateLocationUI('Rio de Janeiro', 'Rio de Janeiro');
+                    state.city = 'Rio de Janeiro';
+                    state.stateName = 'Rio de Janeiro';
                     state.locationGranted = true; // Assume true para não bloquear
                     proceedIfReady();
                 });

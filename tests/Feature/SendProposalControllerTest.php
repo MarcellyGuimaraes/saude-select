@@ -18,6 +18,8 @@ beforeEach(function () {
         'nome' => 'Maria',
         'profile' => 'pf',
         'lives' => ['0-18' => 1],
+        'city' => 'Niterói',
+        'state_name' => 'Rio de Janeiro',
         'pdf_client_path' => 'propostas/cliente.pdf',
         'pdf_system_path' => 'propostas/sistema.pdf',
     ]]);
@@ -55,4 +57,36 @@ test('envia para os destinos configurados no ambiente', function () {
 
     Mail::assertSent(ProposalSystemMail::class, fn ($mail) => $mail->hasTo('outro@example.com'));
     Mail::assertNotSent(ProposalSystemMail::class, fn ($mail) => $mail->hasTo('buscarplanos.oficial@gmail.com'));
+});
+
+test('envia a localizacao no alerta, no e-mail e na mensagem ao cliente', function () {
+    $whatsapp = mock(WhatsAppService::class);
+    $whatsapp->shouldReceive('sendPdf')->andReturn(['success' => true]);
+    $whatsapp->shouldReceive('sendText')->with('21988887777', Mockery::pattern('/Cidade da cotação: Niterói - Rio de Janeiro/'))->once()->andReturn(['success' => true]);
+    $whatsapp->shouldReceive('sendText')->with('5521988965001', Mockery::pattern('/CIDADE:\* Niterói - Rio de Janeiro/'))->once()->andReturn(['success' => true]);
+
+    $this->postJson(route('proposta.enviar'), ['phone' => '21988887777'])->assertOk();
+
+    Mail::assertSent(ProposalSystemMail::class, function ($mail) {
+        $mail->assertSeeInHtml('Niterói - Rio de Janeiro');
+
+        return true;
+    });
+});
+
+test('mostra a localizacao como nao informada quando a sessao nao tem cidade nem estado', function () {
+    session(['simulacao_atual' => array_merge(session('simulacao_atual'), ['city' => null, 'state_name' => null])]);
+
+    $whatsapp = mock(WhatsAppService::class);
+    $whatsapp->shouldReceive('sendPdf')->andReturn(['success' => true]);
+    $whatsapp->shouldReceive('sendText')->with('21988887777', Mockery::any())->once()->andReturn(['success' => true]);
+    $whatsapp->shouldReceive('sendText')->with('5521988965001', Mockery::pattern('/CIDADE:\* Não informada/'))->once()->andReturn(['success' => true]);
+
+    $this->postJson(route('proposta.enviar'), ['phone' => '21988887777'])->assertOk();
+
+    Mail::assertSent(ProposalSystemMail::class, function ($mail) {
+        $mail->assertSeeInHtml('Não informada');
+
+        return true;
+    });
 });

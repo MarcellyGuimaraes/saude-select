@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\PdfService;
 use App\Services\SimuladorOnlineService;
+use App\Support\Location;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -25,6 +26,8 @@ class PropostaController extends Controller
             'profile' => 'required|string',
             'profession_id' => 'nullable|string',
             'nome' => 'nullable|string|max:255',
+            'city' => 'nullable|string|max:255',
+            'state_name' => 'nullable|string|max:255',
         ]);
 
         try {
@@ -43,8 +46,9 @@ class PropostaController extends Controller
             $plansWithoutInternacao = SimuladorOnlineService::identifyPlansWithoutInternacao($clientHtml);
 
             // PRÉ-GERAÇÃO DOS PDFs PARA EVITAR TIMEOUT NO PASSO FINAL
-            $pdfSystemContent = $this->pdfService->generateSystemPdf($systemHtml);
-            $pdfClientContent = $this->pdfService->generateClientPdf($clientHtml);
+            $cidade = Location::format($data['city'] ?? null, $data['state_name'] ?? null);
+            $pdfSystemContent = $this->pdfService->generateSystemPdf($systemHtml, $cidade);
+            $pdfClientContent = $this->pdfService->generateClientPdf($clientHtml, $cidade);
 
             // Salvar no Storage local temporário
             $clientFileName = 'client_' . uniqid() . '.pdf';
@@ -58,6 +62,8 @@ class PropostaController extends Controller
                     'lives' => $data['lives'],
                     'profile' => $data['profile'],
                     'nome' => $data['nome'] ?? null,
+                    'city' => $data['city'] ?? null,
+                    'state_name' => $data['state_name'] ?? null,
                     // 'raw_html' => $rawHtml, // Removing raw html since we now have the PDFs
                     'system_html' => $systemHtml,
                     'client_html' => $clientHtml,
@@ -116,6 +122,7 @@ class PropostaController extends Controller
             return view('proposta.pdf-template', [
                 'content' => $data['system_html'],
                 'titulo' => 'Proposta de Plano de Saúde (Individual)',
+                'cidade' => Location::format($data['city'] ?? null, $data['state_name'] ?? null),
             ]);
         }
         catch (\Throwable $e) {
@@ -134,6 +141,7 @@ class PropostaController extends Controller
             return view('proposta.pdf-template', [
                 'content' => $data['client_html'],
                 'titulo' => 'Plano escolhido — Preços e Rede de Atendimento',
+                'cidade' => Location::format($data['city'] ?? null, $data['state_name'] ?? null),
             ]);
         }
         catch (\Throwable $e) {

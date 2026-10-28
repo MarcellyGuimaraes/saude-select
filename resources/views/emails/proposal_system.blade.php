@@ -8,6 +8,9 @@
     @if($phone)
         <p><strong>Telefone do Cliente:</strong> {{ $phone }}</p>
     @endif
+    @if($city)
+        <p><strong>Cidade:</strong> {{ $city }}</p>
+    @endif
     <p>Segue em anexo o PDF com os detalhes da simulação (versão sistema).</p>
 </body>
 </html>

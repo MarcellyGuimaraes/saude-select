@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\WhatsApp\WhatsAppService;
+use App\Support\Location;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -41,9 +42,11 @@ class SendProposalController extends Controller
             $pdfClientContent = Storage::disk('local')->get($clientPdfPath);
             $pdfSystemContent = Storage::disk('local')->get($systemPdfPath);
 
+            $city = Location::format($data['city'] ?? null, $data['state_name'] ?? null) ?? 'Não informada';
+
             // 2. Send Email to Admin/System (Backup)
             $adminEmail = config('services.notificacoes.admin_email');
-            Mail::to($adminEmail)->send(new \App\Mail\ProposalSystemMail($pdfSystemContent, 'proposta-sistema.pdf', $clientPhone));
+            Mail::to($adminEmail)->send(new \App\Mail\ProposalSystemMail($pdfSystemContent, 'proposta-sistema.pdf', $clientPhone, $city));
 
             // 3. WhatsApp Automation Flow
             $apiResult = ['success' => false];
@@ -55,6 +58,7 @@ class SendProposalController extends Controller
             // Action 3: Send Follow-up Message to Client
             $msgClient = "Olá, {$clientName}! 👋\n\n" .
                 "O Dossiê BuscarPlanos " . date('Y') . " solicitado já está disponível acima. 📄\n\n" .
+                "📍 Cidade da cotação: {$city}\n\n" .
                 "Este documento apresenta o detalhamento técnico da seleção realizada, com os respectivos valores e especificações de rede.\n\n" .
                 "A equipe de suporte analisará os critérios de aceitação para o perfil informado e entrará em contato para validar o match técnico, além de esclarecer eventuais dúvidas sobre carências ou procedimentos de adesão.\n\n" .
                 "Agradecemos por utilizar a inteligência da BuscarPlanos. 🚀";
@@ -72,8 +76,6 @@ class SendProposalController extends Controller
                     }
                 }
             }
-            $city = $data['city'] ?? 'N/A'; // Default to N/A if not found
-
             // Get selected plans names
             $selectedPlanNamesStr = "Ver PDF anexo";
 

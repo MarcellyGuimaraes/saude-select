@@ -125,12 +125,14 @@ Sobre o resultado, o sistema:
 ### Envio da proposta
 
 Nesta ordem:
-1. **E-mail** para o endereço administrativo, com o PDF do sistema anexado.
+1. **E-mail** para o endereço administrativo, com telefone e localização no corpo e o PDF do sistema anexado.
 2. **WhatsApp do cliente:** o PDF do cliente.
-3. **WhatsApp do cliente:** a mensagem de acompanhamento.
-4. **WhatsApp da equipe:** o alerta "NOVO LEAD CAPTURADO" (nome, perfil, vidas e telefone).
+3. **WhatsApp do cliente:** a mensagem de acompanhamento, com a cidade da cotação.
+4. **WhatsApp da equipe:** o alerta "NOVO LEAD CAPTURADO" (nome, localização, perfil, vidas e telefone).
 5. **WhatsApp da equipe:** o PDF do sistema.
 6. Apaga os dois PDFs temporários.
+
+A localização aparece como "Cidade - Estado" (ou só o valor conhecido). Sem nenhum dos dois, as mensagens mostram "Não informada". Os PDFs trazem a mesma localização numa linha "Cidade: …" no topo, omitida quando não há localização.
 
 O telefone é normalizado antes de enviar: mantém só os dígitos e acrescenta `55` quando tem menos de 12 dígitos.
 
@@ -203,8 +205,10 @@ Erros: **422** (validação) ou **500** com `{"success": false, "error": "…"}`
 ### `POST /proposta/gerar`
 
 ```json
-{ "planIds": [408270, 420159], "lives": { "29-33": 2 }, "profile": "cpf", "nome": "Ana Silva", "profession_id": null }
+{ "planIds": [408270, 420159], "lives": { "29-33": 2 }, "profile": "cpf", "nome": "Ana Silva", "profession_id": null, "city": "Niterói", "state_name": "Rio de Janeiro" }
 ```
+
+`city` e `state_name` são opcionais: a cidade e o estado selecionados no funil. Ficam na sessão e aparecem como "Niterói - Rio de Janeiro" nos PDFs, no e-mail e nas mensagens de WhatsApp.
 
 Resposta 200:
 
