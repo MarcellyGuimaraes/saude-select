@@ -50,4 +50,9 @@ return [
         'instance' => env('UAZAPI_INSTANCE'),
     ],
 
+    'notificacoes' => [
+        'admin_email' => env('ADMIN_NOTIFICATION_EMAIL', 'buscarplanos.oficial@gmail.com'),
+        'admin_whatsapp' => env('ADMIN_NOTIFICATION_WHATSAPP', '5521988965001'),
+    ],
+
 ];

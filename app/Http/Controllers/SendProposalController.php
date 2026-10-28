@@ -42,7 +42,7 @@ class SendProposalController extends Controller
             $pdfSystemContent = Storage::disk('local')->get($systemPdfPath);
 
             // 2. Send Email to Admin/System (Backup)
-            $adminEmail = 'renanldb93@gmail.com';
+            $adminEmail = config('services.notificacoes.admin_email');
             Mail::to($adminEmail)->send(new \App\Mail\ProposalSystemMail($pdfSystemContent, 'proposta-sistema.pdf', $clientPhone));
 
             // 3. WhatsApp Automation Flow
@@ -87,7 +87,7 @@ class SendProposalController extends Controller
                 "📄 *[CLIQUE AQUI PARA O PDF COMPLETO]* (Ver Recibo Acima)\n\n" .
                 "📲 *WhatsApp Cliente:* {$clientPhone}";
 
-            $adminPhoneTarget = '5521999999999'; // Admin Phone Target
+            $adminPhoneTarget = config('services.notificacoes.admin_whatsapp');
 
             $this->whatsappService->sendText($adminPhoneTarget, $msgBroker);
             // Also send the system PDF to admin
