@@ -70,7 +70,9 @@
                             · {{ $fmt($row['pct_top']) }} do topo
                             @if ($row['pct_prev'] !== null)
                                 · {{ $fmt($row['pct_prev']) }} da anterior
-                                <span class="text-red-500">(−{{ $row['dropped'] }})</span>
+                                @if ($row['dropped'] > 0)
+                                    <span class="text-red-500">(−{{ $row['dropped'] }})</span>
+                                @endif
                             @endif
                         </span>
                     </div>

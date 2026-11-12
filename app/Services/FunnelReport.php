@@ -4,7 +4,7 @@ namespace App\Services;
 
 use App\Models\FunnelEvent;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Carbon;
+use Carbon\CarbonInterface;
 
 /**
  * Consultas do dashboard /admin/funil. Conta SESSÕES únicas por etapa
@@ -29,7 +29,7 @@ class FunnelReport
      * @param  array{source?: ?string, campaign?: ?string}  $filters
      * @return list<array{label: string, count: int, pct_prev: ?float, pct_top: ?float, dropped: int}>
      */
-    public function funnel(Carbon $from, Carbon $to, array $filters = []): array
+    public function funnel(CarbonInterface $from, CarbonInterface $to, array $filters = []): array
     {
         $rows = [];
         $previous = null;
@@ -63,7 +63,7 @@ class FunnelReport
      *
      * @return list<array{source: string, campaign: string, started: int, leads: int, rate: ?float}>
      */
-    public function bySource(Carbon $from, Carbon $to, array $filters = []): array
+    public function bySource(CarbonInterface $from, CarbonInterface $to, array $filters = []): array
     {
         $count = function (string $event) use ($from, $to, $filters) {
             return $this->base($from, $to, $filters)
@@ -97,7 +97,7 @@ class FunnelReport
      *
      * @return array{states: array<string, int>, profiles: array<string, int>}
      */
-    public function leadBreakdown(Carbon $from, Carbon $to, array $filters = []): array
+    public function leadBreakdown(CarbonInterface $from, CarbonInterface $to, array $filters = []): array
     {
         $group = fn (string $column) => $this->base($from, $to, $filters)
             ->where('event', 'generate_lead')
@@ -117,7 +117,7 @@ class FunnelReport
      *
      * @return array<string, int> data (d/m) => leads
      */
-    public function leadsPerDay(Carbon $from, Carbon $to, array $filters = []): array
+    public function leadsPerDay(CarbonInterface $from, CarbonInterface $to, array $filters = []): array
     {
         $days = [];
 
@@ -138,7 +138,7 @@ class FunnelReport
      *
      * @return array<string, int>
      */
-    public function topErrors(Carbon $from, Carbon $to, array $filters = []): array
+    public function topErrors(CarbonInterface $from, CarbonInterface $to, array $filters = []): array
     {
         return $this->base($from, $to, $filters)
             ->where('event', 'quiz_error')
@@ -166,7 +166,7 @@ class FunnelReport
         return ['sources' => $distinct('utm_source'), 'campaigns' => $distinct('utm_campaign')];
     }
 
-    private function base(Carbon $from, Carbon $to, array $filters): Builder
+    private function base(CarbonInterface $from, CarbonInterface $to, array $filters): Builder
     {
         return FunnelEvent::query()
             ->whereBetween('created_at', [$from, $to])
