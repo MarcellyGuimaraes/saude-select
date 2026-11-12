@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    @include('partials.tracking.gtm-head')
+    @include('partials.tracking.core')
     
     <!-- SEO Meta Tags -->
     <meta name="description" content="Simulador de Planos de Saúde Online. Compare preços e coberturas dos melhores planos de saúde (Unimed, Bradesco, Amil, SulAmérica e mais). Cotação rápida, personalizada e gratuita para você e sua família.">
@@ -111,6 +113,7 @@
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-start pt-4 pb-12">
+    @include('partials.tracking.gtm-body')
 
     <!-- Header & Barra de Progresso -->
     <header class="w-full max-w-md px-4 mb-6 sticky top-0 bg-[#F3F4F6] z-50 pt-2 pb-2">
@@ -1626,5 +1629,6 @@
             });
         }
     </script>
+    @include('partials.tracking.funnel')
 </body>
 </html>

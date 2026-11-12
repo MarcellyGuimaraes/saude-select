@@ -55,4 +55,14 @@ return [
         'admin_whatsapp' => env('ADMIN_NOTIFICATION_WHATSAPP', '5521988965001'),
     ],
 
+    'gtm' => [
+        // Container GTM padrão. Para trocar, defina GTM_ID no .env; para desligar, GTM_ID=off.
+        'id' => env('GTM_ID', 'GTM-KN532XF7') === 'off' ? null : env('GTM_ID', 'GTM-KN532XF7'),
+    ],
+
+    'funnel' => [
+        // Chave de acesso do dashboard /admin/funil. Sem valor, o dashboard fica desligado (404).
+        'dashboard_key' => env('FUNNEL_DASHBOARD_KEY'),
+    ],
+
 ];
