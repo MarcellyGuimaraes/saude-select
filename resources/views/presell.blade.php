@@ -92,6 +92,33 @@
     </div>
 </section>
 
+{{-- Carrossel infinito de operadoras (duas faixas, sentidos opostos, bordas em blur) --}}
+@php
+    $logos = config('operadoras', []);
+    $rows = [
+        array_values(array_filter($logos, fn ($k) => $k % 2 === 0, ARRAY_FILTER_USE_KEY)),
+        array_values(array_filter($logos, fn ($k) => $k % 2 === 1, ARRAY_FILTER_USE_KEY)),
+    ];
+@endphp
+@if (count($logos))
+<section class="logos" aria-label="Operadoras disponíveis no simulador">
+    <p class="logos-note">Operadoras e administradoras disponíveis no simulador.<br>A oferta varia conforme a cidade e o perfil.</p>
+    @foreach ($rows as $i => $row)
+        <div class="marquee{{ $i ? ' rev' : '' }}">
+            <div class="track" style="--dur: {{ $i ? 150 : 170 }}s">
+                @foreach ([false, true] as $dup)
+                    <ul class="set"@if ($dup) aria-hidden="true"@endif>
+                        @foreach ($row as $logo)
+                            <li><span class="logo-card"><img src="/img/operadoras/{{ $logo['file'] }}" alt="{{ $dup ? '' : $logo['alt'] }}" width="150" height="60" loading="lazy" decoding="async"></span></li>
+                        @endforeach
+                    </ul>
+                @endforeach
+            </div>
+        </div>
+    @endforeach
+</section>
+@endif
+
 {{-- Seção 2: dúvidas comuns --}}
 <section class="section" id="guia" aria-label="Dúvidas comuns">
     <div class="wrap guide">
@@ -126,6 +153,14 @@
             var h = document.documentElement;
             if ((h.scrollTop + window.innerHeight) / h.scrollHeight >= 0.5) { sent50 = true; T('presell_scroll_50', {}); }
         }, { passive: true });
+    }
+
+    // Carrossel: pausa a animação quando fora da tela (poupa bateria e CPU).
+    if ('IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (e) { e.target.classList.toggle('off', !e.isIntersecting); });
+        });
+        document.querySelectorAll('.marquee').forEach(function (m) { io.observe(m); });
     }
 
     // Botão fixo (celular): mostra quando o CTA principal sai da tela.

@@ -28,3 +28,18 @@ test('rodape mostra CNPJ e razao social so quando configurados', function () {
     config(['site.cnpj' => '12.345.678/0001-90', 'site.legal_name' => 'Empresa Teste LTDA']);
     $this->get('/presell')->assertSee('CNPJ 12.345.678/0001-90')->assertSee('Empresa Teste LTDA');
 });
+
+test('carrossel mostra todas as logos de operadoras e os arquivos existem', function () {
+    $logos = config('operadoras');
+    expect(count($logos))->toBeGreaterThanOrEqual(80);
+
+    foreach ($logos as $logo) {
+        expect(file_exists(public_path('img/operadoras/'.$logo['file'])))->toBeTrue("falta {$logo['file']}");
+    }
+
+    $this->get('/presell')
+        ->assertOk()
+        ->assertSee('Operadoras e administradoras disponíveis no simulador')
+        ->assertSee('alt="Hapvida (Allcare)"', false)
+        ->assertSee('alt="Unimed Leste Fluminense (Allcare)"', false);
+});
