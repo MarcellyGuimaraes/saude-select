@@ -93,13 +93,8 @@
 </section>
 
 {{-- Seção 2: dúvidas comuns --}}
-<section class="section" id="guia">
+<section class="section" id="guia" aria-label="Dúvidas comuns">
     <div class="wrap guide">
-        <div class="section-head">
-            <h2>Antes de contratar</h2>
-            <p>Quatro pontos que ajudam a escolher com segurança.</p>
-            <a href="/" data-cta="guia" class="btn btn-sm js-cta guide-cta">Quero meu plano <span class="arrow" aria-hidden="true">→</span></a>
-        </div>
         <div>
             @foreach ($faq as $item)
                 <details>
