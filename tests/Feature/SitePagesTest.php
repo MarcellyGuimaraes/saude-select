@@ -31,7 +31,7 @@ test('rodape mostra CNPJ e razao social so quando configurados', function () {
 
 test('carrossel mostra todas as logos de operadoras e os arquivos existem', function () {
     $logos = config('operadoras');
-    expect(count($logos))->toBeGreaterThanOrEqual(80);
+    expect(count($logos))->toBeGreaterThanOrEqual(60);
 
     foreach ($logos as $logo) {
         expect(file_exists(public_path('img/operadoras/'.$logo['file'])))->toBeTrue("falta {$logo['file']}");
@@ -39,7 +39,7 @@ test('carrossel mostra todas as logos de operadoras e os arquivos existem', func
 
     $this->get('/presell')
         ->assertOk()
-        ->assertSee('Operadoras e administradoras disponíveis no simulador')
-        ->assertSee('alt="Hapvida (Allcare)"', false)
-        ->assertSee('alt="Unimed Leste Fluminense (Allcare)"', false);
+        ->assertSee('Operadoras disponíveis no simulador')
+        ->assertSee('alt="Hapvida"', false)
+        ->assertSee('alt="Unimed Leste Fluminense"', false);
 });

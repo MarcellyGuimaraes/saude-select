@@ -136,7 +136,7 @@ p { margin: 0 0 1rem; }
 }
 
 /* ---------- Carrossel de operadoras ---------- */
-.logos { padding: 2rem 0 2.5rem; border-top: 1px solid var(--line); overflow: hidden; --card-w: 112px; --card-h: 45px; --gap: .65rem; }
+.logos { padding: 2rem 0 2.5rem; border-top: 1px solid var(--line); overflow: hidden; --card-h: 54px; --img-h: 34px; --gap: .65rem; }
 .logos-note { text-align: center; font-size: .85rem; line-height: 1.5; color: var(--muted); margin: 0 auto 1.4rem; padding: 0 1rem; max-width: 34rem; }
 .marquee { position: relative; overflow: hidden; }
 .marquee + .marquee { margin-top: var(--gap); }
@@ -146,10 +146,11 @@ p { margin: 0 0 1rem; }
 .set { display: flex; list-style: none; margin: 0; padding: 0; }
 .set li { flex: none; margin-right: var(--gap); }
 .logo-card {
-  display: block; width: var(--card-w); height: var(--card-h);
+  display: flex; align-items: center; justify-content: center;
+  height: var(--card-h); padding: 0 1.1rem;
   background: #fff; border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
 }
-.logo-card img { width: 100%; height: 100%; object-fit: contain; }
+.logo-card img { height: var(--img-h); width: auto; max-width: 150px; object-fit: contain; }
 @keyframes marquee { to { transform: translateX(-50%); } }
 
 /* bordas com blur: desfoca e some o que entra e sai pelas laterais */
@@ -241,7 +242,8 @@ details[open] summary::after { transform: rotate(45deg); background: var(--mint)
   .flow .sub { font-size: .85rem; }
   .section { padding: 3.5rem 0 4rem; }
   .sticky-cta { display: none; }
-  .logos { --card-w: 150px; --card-h: 60px; --gap: .85rem; padding: 2.5rem 0 3rem; }
+  .logos { --card-h: 68px; --img-h: 42px; --gap: .85rem; padding: 2.5rem 0 3rem; }
+  .logo-card img { max-width: 180px; }
   .site-footer { padding: 2.5rem 0 2rem; }
   .footer-grid { grid-template-columns: 1.3fr 1fr 1.2fr; gap: 2rem; }
 }

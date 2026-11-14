@@ -102,14 +102,14 @@
 @endphp
 @if (count($logos))
 <section class="logos" aria-label="Operadoras disponíveis no simulador">
-    <p class="logos-note">Operadoras e administradoras disponíveis no simulador.<br>A oferta varia conforme a cidade e o perfil.</p>
+    <p class="logos-note">Operadoras disponíveis no simulador.<br>A oferta varia conforme a cidade e o perfil.</p>
     @foreach ($rows as $i => $row)
         <div class="marquee{{ $i ? ' rev' : '' }}">
             <div class="track" style="--dur: {{ $i ? 150 : 170 }}s">
                 @foreach ([false, true] as $dup)
                     <ul class="set"@if ($dup) aria-hidden="true"@endif>
                         @foreach ($row as $logo)
-                            <li><span class="logo-card"><img src="/img/operadoras/{{ $logo['file'] }}" alt="{{ $dup ? '' : $logo['alt'] }}" width="150" height="60" loading="lazy" decoding="async"></span></li>
+                            <li><span class="logo-card"><img src="/img/operadoras/{{ $logo['file'] }}" alt="{{ $dup ? '' : $logo['alt'] }}" width="{{ $logo['w'] }}" height="{{ $logo['h'] }}" loading="lazy" decoding="async"></span></li>
                         @endforeach
                     </ul>
                 @endforeach
