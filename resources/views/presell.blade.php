@@ -1,7 +1,7 @@
 @extends('layouts.site')
 
-@section('title', 'Contrate seu plano de saúde pelo WhatsApp | BuscarPlanos')
-@section('description', 'Veja os planos de saúde da sua cidade, escolha o ideal e finalize a contratação com apoio de um corretor, direto pelo WhatsApp.')
+@section('title', 'Escolha seu plano de saúde e receba cotações no WhatsApp | BuscarPlanos')
+@section('description', 'Escolha seu plano de saúde em menos de 3 minutos e receba as cotações pelo WhatsApp, com apoio de um corretor para fechar a contratação.')
 
 @php
     $faq = [
@@ -51,17 +51,16 @@
 {{-- Seção 1: promessa, ação e o caminho em 3 pontos --}}
 <section class="hero">
     <div class="wrap">
-        <h1 class="rise d1">Contrate seu plano de saúde com rapidez e apoio de um corretor.</h1>
+        <h1 class="rise d1">Escolha seu plano de saúde em menos de 3 minutos e receba as cotações pelo WhatsApp.</h1>
         <p class="lede rise d2">
-            Escolha o plano ideal para você e sua família e finalize pelo WhatsApp.
-            Antes de decidir, você compara valores e rede credenciada.
+            Compare valores e rede credenciada e conte com um corretor para fechar a contratação, tudo pelo WhatsApp.
         </p>
 
         <div class="rise d3">
             <a href="/" data-cta="hero" id="hero-cta" class="btn js-cta">
                 Quero meu plano de saúde <span class="arrow" aria-hidden="true">→</span>
             </a>
-            <p class="cta-note"><strong>Cerca de 1 minuto.</strong> Sem custo para simular.</p>
+            <p class="cta-note"><strong>Menos de 3 minutos.</strong> Sem custo para simular.</p>
         </div>
 
         <ol class="flow" aria-label="Como funciona">
@@ -86,7 +85,7 @@
                     <svg viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="m9 12 2 2 4-4"/></svg>
                     <i class="n">3</i>
                 </span>
-                <b>Contrate</b>
+                <b>Receba</b>
                 <span class="sub">pelo WhatsApp</span>
             </li>
         </ol>
