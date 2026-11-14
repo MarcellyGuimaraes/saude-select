@@ -35,4 +35,11 @@ Route::controller(PropostaController::class)->group(function () {
     Route::post('/proposta/enviar', [\App\Http\Controllers\SendProposalController::class , 'send'])->name('proposta.enviar');
 });
 
+// Presell (página de aquecimento antes do quiz) e rastreamento do funil
+Route::view('/presell', 'presell')->name('presell');
+Route::post('/api/track', [\App\Http\Controllers\TrackController::class , 'store'])
+    ->middleware('throttle:240,1')
+    ->name('api.track');
+Route::get('/admin/funil', [\App\Http\Controllers\FunnelDashboardController::class , 'index'])->name('admin.funil');
+
 require __DIR__ . '/settings.php';
