@@ -65,7 +65,7 @@
                     <a class="logo" href="/presell" aria-label="{{ $site['name'] }}">
                         <img src="/logo-site.png" alt="{{ $site['name'] }}" width="350" height="90" loading="lazy">
                     </a>
-                    <p>Compare planos de saúde da sua região e receba o comparativo em PDF.</p>
+                    <p>Planos de saúde com atendimento de corretor, direto pelo WhatsApp.</p>
                 </div>
 
                 <nav aria-label="Informações legais">
@@ -94,7 +94,7 @@
                     @if ($site['susep']) · Registro SUSEP {{ $site['susep'] }}@endif
                 </p>
                 <p>
-                    O {{ $site['name'] }} é um serviço de comparação e apoio à contratação de planos de saúde. <strong>Não somos operadora de plano de saúde</strong> e não vendemos cobertura própria.
+                    O {{ $site['name'] }} é um serviço de apoio à escolha e à contratação de planos de saúde, com comparação de opções e atendimento de corretor. <strong>Não somos operadora de plano de saúde</strong> e não vendemos cobertura própria.
                     As informações têm caráter orientativo e não substituem a análise do contrato e do material oficial de cada operadora.
                 </p>
                 <p>

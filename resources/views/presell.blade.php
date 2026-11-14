@@ -1,7 +1,7 @@
 @extends('layouts.site')
 
-@section('title', 'Compare planos de saúde da sua cidade | BuscarPlanos')
-@section('description', 'Informe quem vai usar o plano, compare as opções da sua região e receba o comparativo em PDF no WhatsApp, com valores e rede credenciada.')
+@section('title', 'Contrate seu plano de saúde pelo WhatsApp | BuscarPlanos')
+@section('description', 'Veja os planos de saúde da sua cidade, escolha o ideal e finalize a contratação com apoio de um corretor, direto pelo WhatsApp.')
 
 @php
     $faq = [
@@ -51,15 +51,15 @@
 {{-- Seção 1: promessa, ação e o caminho em 3 pontos --}}
 <section class="hero">
     <div class="wrap">
-        <h1 class="rise d1">Compare planos de saúde da sua cidade, sem compromisso.</h1>
+        <h1 class="rise d1">Contrate seu plano de saúde com rapidez e apoio de um corretor.</h1>
         <p class="lede rise d2">
-            Responda algumas perguntas e receba o comparativo em PDF no seu WhatsApp,
-            com valores e rede credenciada.
+            Escolha o plano ideal para você e sua família e finalize pelo WhatsApp.
+            Antes de decidir, você compara valores e rede credenciada.
         </p>
 
         <div class="rise d3">
             <a href="/" data-cta="hero" id="hero-cta" class="btn js-cta">
-                Comparar planos da minha cidade <span class="arrow" aria-hidden="true">→</span>
+                Quero meu plano de saúde <span class="arrow" aria-hidden="true">→</span>
             </a>
             <p class="cta-note"><strong>Cerca de 1 minuto.</strong> Sem custo para simular.</p>
         </div>
@@ -78,16 +78,16 @@
                     <svg viewBox="0 0 24 24"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg>
                     <i class="n">2</i>
                 </span>
-                <b>Escolha planos</b>
+                <b>Escolha o plano</b>
                 <span class="sub">da sua cidade</span>
             </li>
             <li>
                 <span class="node" aria-hidden="true">
-                    <svg viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h5"/></svg>
+                    <svg viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="m9 12 2 2 4-4"/></svg>
                     <i class="n">3</i>
                 </span>
-                <b>Receba o PDF</b>
-                <span class="sub">no WhatsApp</span>
+                <b>Contrate</b>
+                <span class="sub">pelo WhatsApp</span>
             </li>
         </ol>
     </div>
@@ -97,9 +97,9 @@
 <section class="section" id="guia">
     <div class="wrap guide">
         <div class="section-head">
-            <h2>Antes de escolher</h2>
-            <p>Quatro dúvidas comuns, em poucas linhas.</p>
-            <a href="/" data-cta="guia" class="btn btn-sm js-cta guide-cta">Comparar agora <span class="arrow" aria-hidden="true">→</span></a>
+            <h2>Antes de contratar</h2>
+            <p>Quatro pontos que ajudam a escolher com segurança.</p>
+            <a href="/" data-cta="guia" class="btn btn-sm js-cta guide-cta">Quero meu plano <span class="arrow" aria-hidden="true">→</span></a>
         </div>
         <div>
             @foreach ($faq as $item)
@@ -114,7 +114,7 @@
 
 {{-- Botão fixo no celular: aparece depois que o botão principal sai da tela --}}
 <div class="sticky-cta" id="sticky-cta" aria-hidden="true">
-    <a href="/" data-cta="fixo" class="btn js-cta" tabindex="-1">Comparar planos <span class="arrow" aria-hidden="true">→</span></a>
+    <a href="/" data-cta="fixo" class="btn js-cta" tabindex="-1">Quero meu plano de saúde <span class="arrow" aria-hidden="true">→</span></a>
 </div>
 
 @endsection
