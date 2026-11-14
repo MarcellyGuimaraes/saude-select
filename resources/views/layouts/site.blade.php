@@ -36,7 +36,6 @@
         'name' => $site['name'],
         'url' => url('/'),
         'logo' => asset('logo-site.png'),
-        'sameAs' => [$site['facebook'], $site['instagram']],
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}</script>
     @stack('schema')
 </head>
@@ -66,7 +65,7 @@
                     <a class="logo" href="/presell" aria-label="{{ $site['name'] }}">
                         <img src="/logo-site.png" alt="{{ $site['name'] }}" width="350" height="90" loading="lazy">
                     </a>
-                    <p>Ajudamos você a comparar planos de saúde disponíveis na sua região e a receber o comparativo em PDF, com valores e rede credenciada.</p>
+                    <p>Compare planos de saúde da sua região e receba o comparativo em PDF.</p>
                 </div>
 
                 <nav aria-label="Informações legais">
@@ -84,10 +83,6 @@
                         @if ($site['email'])<li><a href="mailto:{{ $site['email'] }}">{{ $site['email'] }}</a></li>@endif
                         @if ($site['phone'])<li>{{ $site['phone'] }}</li>@endif
                         @if ($site['address'])<li>{{ $site['address'] }}</li>@endif
-                        <li>
-                            <a href="{{ $site['instagram'] }}" target="_blank" rel="noopener noreferrer">Instagram</a> ·
-                            <a href="{{ $site['facebook'] }}" target="_blank" rel="noopener noreferrer">Facebook</a>
-                        </li>
                     </ul>
                 </div>
             </div>
