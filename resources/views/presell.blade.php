@@ -3,10 +3,6 @@
 @section('title', 'Compare planos de saúde da sua cidade | BuscarPlanos')
 @section('description', 'Informe quem vai usar o plano, compare as opções da sua região e receba o comparativo em PDF no WhatsApp, com valores e rede credenciada.')
 
-@section('header_cta')
-    <a href="/" data-cta="topo" class="btn btn-sm js-cta">Comparar planos</a>
-@endsection
-
 @php
     $faq = [
         [
