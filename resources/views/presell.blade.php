@@ -55,7 +55,6 @@
 {{-- Seção 1: promessa, ação e o caminho em 3 pontos --}}
 <section class="hero">
     <div class="wrap">
-        <span class="eyebrow rise">Comparador de planos de saúde</span>
         <h1 class="rise d1">Compare planos de saúde da sua cidade, sem compromisso.</h1>
         <p class="lede rise d2">
             Responda algumas perguntas e receba o comparativo em PDF no seu WhatsApp,
@@ -69,10 +68,31 @@
             <p class="cta-note"><strong>Cerca de 1 minuto.</strong> Sem custo para simular.</p>
         </div>
 
-        <ol class="flow rise d3" aria-label="Como funciona">
-            <li><span class="dot">1</span>Conte quem vai usar</li>
-            <li><span class="dot">2</span>Escolha os planos</li>
-            <li><span class="dot">3</span>Receba o PDF</li>
+        <ol class="flow" aria-label="Como funciona">
+            <li>
+                <span class="node" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <i class="n">1</i>
+                </span>
+                <b>Conte quem usa</b>
+                <span class="sub">tipo e idades</span>
+            </li>
+            <li>
+                <span class="node" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg>
+                    <i class="n">2</i>
+                </span>
+                <b>Escolha planos</b>
+                <span class="sub">da sua cidade</span>
+            </li>
+            <li>
+                <span class="node" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h5"/></svg>
+                    <i class="n">3</i>
+                </span>
+                <b>Receba o PDF</b>
+                <span class="sub">no WhatsApp</span>
+            </li>
         </ol>
     </div>
 </section>
