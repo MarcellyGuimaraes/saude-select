@@ -37,6 +37,8 @@ Route::controller(PropostaController::class)->group(function () {
 
 // Presell (página de aquecimento antes do quiz) e rastreamento do funil
 Route::view('/presell', 'presell')->name('presell');
+Route::view('/privacidade', 'site.privacidade')->name('site.privacidade');
+Route::view('/termos', 'site.termos')->name('site.termos');
 Route::post('/api/track', [\App\Http\Controllers\TrackController::class , 'store'])
     ->middleware('throttle:240,1')
     ->name('api.track');

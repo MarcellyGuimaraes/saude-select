@@ -1,133 +1,190 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="robots" content="noindex, nofollow">
-    @include('partials.tracking.gtm-head')
-    @include('partials.tracking.core')
+@extends('layouts.site')
 
-    <title>Compare planos de saúde da sua cidade | BuscarPlanos</title>
-    <meta name="description" content="Responda 5 perguntas rápidas, compare planos de saúde disponíveis na sua região e receba o comparativo em PDF no WhatsApp.">
-    <link rel="icon" href="/logo-app.png" type="image/png">
+@section('title', 'Escolha seu plano de saúde e receba cotações no WhatsApp | BuscarPlanos')
+@section('description', 'Escolha seu plano de saúde em menos de 3 minutos e receba as cotações pelo WhatsApp, com apoio de um corretor para fechar a contratação.')
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #F3F4F6; }
-        .cta { background: #2563EB; box-shadow: 0 8px 20px rgba(37, 99, 235, .35); transition: transform .2s, background .2s; }
-        .cta:hover { background: #1D4ED8; transform: translateY(-2px); }
-    </style>
-</head>
-<body class="min-h-screen flex flex-col items-center pb-28">
-    @include('partials.tracking.gtm-body')
-
-    <header class="w-full max-w-md px-4 pt-4 pb-2">
-        <img src="/logo-site.png" alt="BuscarPlanos" class="h-9 w-auto" onerror="this.style.display='none'">
-    </header>
-
-    <main class="w-full max-w-md px-4 space-y-5 mt-2">
-        {{-- Dobra 1: promessa + CTA --}}
-        <section class="bg-white rounded-2xl shadow-lg p-6 text-center">
-            <span class="inline-block text-[11px] font-bold uppercase tracking-wide text-blue-700 bg-blue-50 px-3 py-1 rounded-full mb-4">
-                <i class="fas fa-map-marker-alt mr-1"></i> Planos disponíveis na sua região
-            </span>
-            <h1 class="text-2xl font-extrabold text-gray-900 leading-tight mb-3">
-                Descubra quais planos de saúde atendem você e sua família
-            </h1>
-            <p class="text-gray-600 text-sm leading-relaxed mb-6">
-                Responda 5 perguntas rápidas, compare as opções da sua cidade e receba o comparativo
-                com valores e rede credenciada em PDF, direto no seu WhatsApp.
-            </p>
-            <a href="/" data-cta="hero" class="cta js-cta block w-full text-white font-bold text-lg py-4 rounded-xl">
-                Ver planos da minha cidade <i class="fas fa-arrow-right ml-1"></i>
-            </a>
-            <p class="text-[11px] text-gray-400 mt-3"><i class="fas fa-lock mr-1"></i> Leva cerca de 1 minuto. Sem compromisso.</p>
-        </section>
-
-        {{-- Como funciona --}}
-        <section class="bg-white rounded-2xl shadow p-6">
-            <h2 class="text-lg font-bold text-gray-900 mb-4">Como funciona</h2>
-            <ol class="space-y-4">
-                <li class="flex gap-3">
-                    <span class="flex-none w-8 h-8 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center">1</span>
-                    <div>
-                        <p class="font-semibold text-gray-800 text-sm">Conte quem vai usar o plano</p>
-                        <p class="text-gray-500 text-xs">Perfil de contratação e quantas pessoas, por faixa de idade.</p>
-                    </div>
-                </li>
-                <li class="flex gap-3">
-                    <span class="flex-none w-8 h-8 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center">2</span>
-                    <div>
-                        <p class="font-semibold text-gray-800 text-sm">Escolha os planos que quer comparar</p>
-                        <p class="text-gray-500 text-xs">Mostramos as opções disponíveis para a sua cidade.</p>
-                    </div>
-                </li>
-                <li class="flex gap-3">
-                    <span class="flex-none w-8 h-8 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center">3</span>
-                    <div>
-                        <p class="font-semibold text-gray-800 text-sm">Receba o PDF no WhatsApp</p>
-                        <p class="text-gray-500 text-xs">Valores e rede credenciada reunidos em um só documento.</p>
-                    </div>
-                </li>
-            </ol>
-        </section>
-
-        {{-- O que você recebe --}}
-        <section class="bg-white rounded-2xl shadow p-6">
-            <h2 class="text-lg font-bold text-gray-900 mb-3">O que vem no comparativo</h2>
-            <ul class="space-y-2 text-sm text-gray-700">
-                <li><i class="fas fa-check-circle text-green-600 mr-2"></i>Valores por faixa de idade</li>
-                <li><i class="fas fa-check-circle text-green-600 mr-2"></i>Tipo de acomodação e coparticipação</li>
-                <li><i class="fas fa-check-circle text-green-600 mr-2"></i>Rede credenciada de cada operadora</li>
-                <li><i class="fas fa-check-circle text-green-600 mr-2"></i>Atendimento de um corretor para tirar dúvidas</li>
+@php
+    $faq = [
+        [
+            'q' => 'Individual, empresarial ou por adesão?',
+            'a' => '<ul>
+                <li><strong>Individual ou familiar:</strong> contratado com CPF. Poucas operadoras vendem, e o reajuste anual é limitado pela ANS.</li>
+                <li><strong>Empresarial (PME):</strong> contratado com CNPJ, incluindo MEI conforme a operadora. O reajuste é negociado.</li>
+                <li><strong>Por adesão:</strong> contratado por associação, sindicato ou entidade de classe, com vínculo profissional.</li>
+            </ul>',
+        ],
+        [
+            'q' => 'O que é coparticipação?',
+            'a' => '<p>Além da mensalidade, você paga uma parte de cada consulta ou exame que usar. Em geral a mensalidade é menor. Sem coparticipação, a mensalidade costuma ser maior e não há cobrança por uso.</p>',
+        ],
+        [
+            'q' => 'O que é carência?',
+            'a' => '<p>É o prazo de espera até poder usar certos serviços. Limites máximos previstos em lei:</p>
+            <ul>
+                <li>urgência e emergência: 24 horas;</li>
+                <li>consultas, exames e internações: até 180 dias;</li>
+                <li>parto: até 300 dias.</li>
             </ul>
-            <a href="/" data-cta="meio" class="cta js-cta block w-full text-center text-white font-bold py-3 rounded-xl mt-5">
-                Quero comparar agora
-            </a>
-        </section>
+            <p>Para doenças preexistentes, pode haver cobertura parcial temporária de até 24 meses em procedimentos de alta complexidade.</p>',
+        ],
+        [
+            'q' => 'O que conferir na rede credenciada?',
+            'a' => '<p>Veja se os hospitais e laboratórios que você usa ficam na sua cidade e fazem parte do plano. Alguns têm rede reduzida ou cobertura restrita, inclusive só de pronto-socorro. Confirme também se a operadora tem registro no <a href="https://www.gov.br/ans/pt-br" target="_blank" rel="noopener noreferrer">site da ANS</a>.</p>',
+        ],
+    ];
+@endphp
 
-        <p class="text-[10px] text-gray-400 text-center leading-snug px-2">
-            Os valores e a disponibilidade dependem da região, do perfil e das regras de cada operadora.
-            Ao continuar, você será direcionado ao simulador do BuscarPlanos.
+@push('schema')
+<script type="application/ld+json">{!! json_encode([
+    '@context' => 'https://schema.org',
+    '@type' => 'FAQPage',
+    'mainEntity' => array_map(fn ($i) => [
+        '@type' => 'Question',
+        'name' => $i['q'],
+        'acceptedAnswer' => ['@type' => 'Answer', 'text' => strip_tags($i['a'])],
+    ], $faq),
+], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}</script>
+@endpush
+
+@section('content')
+
+{{-- Seção 1: promessa, ação e o caminho em 3 pontos --}}
+<section class="hero">
+    <div class="wrap">
+        <h1 class="rise d1">Escolha seu plano de saúde em menos de 3 minutos e receba as cotações pelo WhatsApp.</h1>
+        <p class="lede rise d2">
+            Compare valores e rede credenciada e conte com um corretor para fechar a contratação, tudo pelo WhatsApp.
         </p>
-    </main>
 
-    {{-- CTA fixo no rodapé (mobile) --}}
-    <div class="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur border-t border-gray-200 p-3 flex justify-center z-40">
-        <a href="/" data-cta="rodape" class="cta js-cta w-full max-w-md text-center text-white font-bold py-3 rounded-xl">
-            Ver planos da minha cidade <i class="fas fa-arrow-right ml-1"></i>
-        </a>
+        <div class="rise d3">
+            <a href="/" data-cta="hero" id="hero-cta" class="btn js-cta">
+                Quero meu plano de saúde <span class="arrow" aria-hidden="true">→</span>
+            </a>
+            <p class="cta-note"><strong>Menos de 3 minutos.</strong> Sem custo para simular.</p>
+        </div>
+
+        <ol class="flow" aria-label="Como funciona">
+            <li>
+                <span class="node" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <i class="n">1</i>
+                </span>
+                <b>Conte quem usa</b>
+                <span class="sub">tipo e idades</span>
+            </li>
+            <li>
+                <span class="node" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg>
+                    <i class="n">2</i>
+                </span>
+                <b>Escolha o plano</b>
+                <span class="sub">da sua cidade</span>
+            </li>
+            <li>
+                <span class="node" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="m9 12 2 2 4-4"/></svg>
+                    <i class="n">3</i>
+                </span>
+                <b>Receba</b>
+                <span class="sub">pelo WhatsApp</span>
+            </li>
+        </ol>
     </div>
+</section>
 
-    <script>
-        (function () {
-            if (typeof window.fsTrack !== 'function') return;
-            var T = window.fsTrack;
+{{-- Carrossel infinito de operadoras (duas faixas, sentidos opostos, bordas em blur) --}}
+@php
+    $logos = config('operadoras', []);
+    $rows = [
+        array_values(array_filter($logos, fn ($k) => $k % 2 === 0, ARRAY_FILTER_USE_KEY)),
+        array_values(array_filter($logos, fn ($k) => $k % 2 === 1, ARRAY_FILTER_USE_KEY)),
+    ];
+@endphp
+@if (count($logos))
+<section class="logos" aria-label="Operadoras disponíveis no simulador">
+    <p class="logos-note">Operadoras disponíveis no simulador.<br>A oferta varia conforme a cidade e o perfil.</p>
+    @foreach ($rows as $i => $row)
+        <div class="marquee{{ $i ? ' rev' : '' }}">
+            <div class="track" style="--dur: {{ $i ? 150 : 170 }}s">
+                @foreach ([false, true] as $dup)
+                    <ul class="set"@if ($dup) aria-hidden="true"@endif>
+                        @foreach ($row as $logo)
+                            <li><span class="logo-card"><img src="/img/operadoras/{{ $logo['file'] }}" alt="{{ $dup ? '' : $logo['alt'] }}" width="{{ $logo['w'] }}" height="{{ $logo['h'] }}" loading="lazy" decoding="async"></span></li>
+                        @endforeach
+                    </ul>
+                @endforeach
+            </div>
+        </div>
+    @endforeach
+</section>
+@endif
 
-            T('presell_view', { step: null });
+{{-- Seção 2: dúvidas comuns --}}
+<section class="section" id="guia" aria-label="Dúvidas comuns">
+    <div class="wrap guide">
+        <div>
+            @foreach ($faq as $item)
+                <details>
+                    <summary>{{ $item['q'] }}</summary>
+                    <div class="answer">{!! $item['a'] !!}</div>
+                </details>
+            @endforeach
+        </div>
+    </div>
+</section>
 
-            // Rolou 50% da página (uma vez)
-            var sent50 = false;
-            window.addEventListener('scroll', function () {
-                if (sent50) return;
-                var h = document.documentElement;
-                var pct = (h.scrollTop + window.innerHeight) / h.scrollHeight;
-                if (pct >= 0.5) { sent50 = true; T('presell_scroll_50', {}); }
-            }, { passive: true });
+{{-- Botão fixo no celular: aparece depois que o botão principal sai da tela --}}
+<div class="sticky-cta" id="sticky-cta" aria-hidden="true">
+    <a href="/" data-cta="fixo" class="btn js-cta" tabindex="-1">Quero meu plano de saúde <span class="arrow" aria-hidden="true">→</span></a>
+</div>
 
-            // Clique em qualquer CTA: registra e segue para o quiz mantendo a query string (UTMs)
-            document.querySelectorAll('.js-cta').forEach(function (a) {
-                a.addEventListener('click', function (e) {
-                    T('presell_cta_click', { cta_position: a.getAttribute('data-cta') });
-                    e.preventDefault();
-                    var url = '/' + window.location.search;
-                    setTimeout(function () { window.location.href = url; }, 150);
-                });
-            });
-        })();
-    </script>
-</body>
-</html>
+@endsection
+
+@push('scripts')
+<script>
+(function () {
+    var T = window.fsTrack;
+    if (typeof T === 'function') {
+        T('presell_view', { step: null });
+
+        var sent50 = false;
+        window.addEventListener('scroll', function () {
+            if (sent50) return;
+            var h = document.documentElement;
+            if ((h.scrollTop + window.innerHeight) / h.scrollHeight >= 0.5) { sent50 = true; T('presell_scroll_50', {}); }
+        }, { passive: true });
+    }
+
+    // Carrossel: pausa a animação quando fora da tela (poupa bateria e CPU).
+    if ('IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (e) { e.target.classList.toggle('off', !e.isIntersecting); });
+        });
+        document.querySelectorAll('.marquee').forEach(function (m) { io.observe(m); });
+    }
+
+    // Botão fixo (celular): mostra quando o CTA principal sai da tela.
+    var hero = document.getElementById('hero-cta');
+    var sticky = document.getElementById('sticky-cta');
+    if (hero && sticky && 'IntersectionObserver' in window) {
+        new IntersectionObserver(function (entries) {
+            var visible = !entries[0].isIntersecting && entries[0].boundingClientRect.top < 0;
+            sticky.classList.toggle('on', visible);
+            sticky.setAttribute('aria-hidden', visible ? 'false' : 'true');
+            sticky.querySelector('a').tabIndex = visible ? 0 : -1;
+        }).observe(hero);
+    }
+
+    // Clique no CTA: registra e segue para o quiz mantendo a query string (UTMs).
+    document.querySelectorAll('.js-cta').forEach(function (a) {
+        a.addEventListener('click', function (e) {
+            if (typeof T !== 'function' || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+            T('presell_cta_click', { cta_position: a.getAttribute('data-cta') });
+            e.preventDefault();
+            var url = '/' + window.location.search;
+            setTimeout(function () { window.location.href = url; }, 150);
+        });
+    });
+})();
+</script>
+@endpush
