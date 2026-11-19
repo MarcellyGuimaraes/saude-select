@@ -32,7 +32,10 @@ class FunnelDashboardController extends Controller
             'period' => $period,
             'from' => $from->format('Y-m-d'),
             'to' => $to->format('Y-m-d'),
-            'rangeLabel' => $from->format('d/m/Y').' a '.$to->format('d/m/Y'),
+            'rangeLabel' => $from->isSameDay($to)
+                ? $from->format('d/m/Y')
+                : $from->format('d/m/Y').' a '.$to->format('d/m/Y'),
+            'periods' => self::PERIODS,
             'funnel' => $funnel,
             'worst' => $worst,
             'hasData' => $funnel[0]['count'] > 0 || $funnel[2]['count'] > 0,
@@ -45,17 +48,31 @@ class FunnelDashboardController extends Controller
         ]);
     }
 
+    /** Períodos pré-definidos do filtro (chave => texto do menu), na ordem do menu. */
+    public const PERIODS = [
+        'today' => 'Hoje',
+        'yesterday' => 'Ontem',
+        'today_yesterday' => 'Hoje e ontem',
+        '3d' => '3 dias',
+        '7d' => '7 dias',
+        '14d' => '14 dias',
+        'month' => 'Este mês',
+        'last_month' => 'Mês passado',
+        'custom' => 'Personalizado',
+    ];
+
     /**
-     * Período: atalhos (hoje, 7d, 30d) ou intervalo personalizado (?period=custom&from=AAAA-MM-DD&to=AAAA-MM-DD).
-     * Datas no fuso de São Paulo; intervalo inválido cai nos últimos 7 dias.
+     * Período: um dos pré-definidos ou intervalo personalizado (?period=custom&from=AAAA-MM-DD&to=AAAA-MM-DD).
+     * "3 dias", "7 dias" e "14 dias" contam o dia de hoje. Datas no fuso de São Paulo;
+     * período desconhecido ou intervalo inválido cai nos últimos 7 dias.
      *
      * @return array{0: string, 1: CarbonImmutable, 2: CarbonImmutable}
      */
     private function resolvePeriod(Request $request): array
     {
         $now = CarbonImmutable::now(self::TZ);
-        $period = in_array($request->query('period'), ['today', '7d', '30d', 'custom'], true)
-            ? $request->query('period')
+        $period = array_key_exists((string) $request->query('period'), self::PERIODS)
+            ? (string) $request->query('period')
             : '7d';
 
         if ($period === 'custom') {
@@ -68,13 +85,18 @@ class FunnelDashboardController extends Controller
             $period = '7d';
         }
 
-        $from = match ($period) {
-            'today' => $now->startOfDay(),
-            '30d' => $now->subDays(29)->startOfDay(),
-            default => $now->subDays(6)->startOfDay(),
+        [$from, $to] = match ($period) {
+            'today' => [$now->startOfDay(), $now],
+            'yesterday' => [$now->subDay()->startOfDay(), $now->subDay()->endOfDay()],
+            'today_yesterday' => [$now->subDay()->startOfDay(), $now],
+            '3d' => [$now->subDays(2)->startOfDay(), $now],
+            '14d' => [$now->subDays(13)->startOfDay(), $now],
+            'month' => [$now->startOfMonth(), $now],
+            'last_month' => [$now->subMonthNoOverflow()->startOfMonth(), $now->subMonthNoOverflow()->endOfMonth()],
+            default => [$now->subDays(6)->startOfDay(), $now],
         };
 
-        return [$period, $from, $now];
+        return [$period, $from, $to];
     }
 
     private function parseDate(mixed $value): ?CarbonImmutable

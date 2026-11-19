@@ -77,6 +77,36 @@ test('dashboard aceita periodo personalizado e ignora datas invalidas', function
         ->assertOk()->assertViewHas('period', '7d');
 });
 
+test('dashboard tem os periodos pre-definidos no menu, na ordem pedida', function () {
+    $this->withHeaders(dashboardLogin())->get('/admin/funil')
+        ->assertOk()
+        ->assertSeeInOrder(['Hoje', 'Ontem', 'Hoje e ontem', '3 dias', '7 dias', '14 dias', 'Este mês', 'Mês passado', 'Personalizado'])
+        ->assertSee('family=Sora', false);
+});
+
+test('cada periodo pre-definido filtra o intervalo certo (fuso de Sao Paulo)', function () {
+    // "agora": 19/11/2026 12:00 em Sao Paulo (15:00 UTC)
+    $this->travelTo(\Carbon\CarbonImmutable::parse('2026-11-19 15:00:00', 'UTC'));
+    $h = dashboardLogin();
+
+    foreach (['2026-11-19 14:00:00' => 'd19', '2026-11-18 15:00:00' => 'd18', '2026-11-17 15:00:00' => 'd17',
+              '2026-11-13 15:00:00' => 'd13', '2026-11-06 15:00:00' => 'd06', '2026-11-02 15:00:00' => 'd02',
+              '2026-10-20 15:00:00' => 'o20'] as $quando => $sid) {
+        FunnelEvent::create(['session_id' => $sid, 'event' => 'quiz_start', 'created_at' => $quando]);
+    }
+
+    $quiz = fn (string $periodo) => $this->withHeaders($h)->get("/admin/funil?period=$periodo")->viewData('cards')['quiz'];
+
+    expect($quiz('today'))->toBe(1)             // 19
+        ->and($quiz('yesterday'))->toBe(1)      // 18
+        ->and($quiz('today_yesterday'))->toBe(2) // 18 e 19
+        ->and($quiz('3d'))->toBe(3)             // 17, 18, 19
+        ->and($quiz('7d'))->toBe(4)             // + 13
+        ->and($quiz('14d'))->toBe(5)            // + 06
+        ->and($quiz('month'))->toBe(6)          // + 02 (novembro inteiro ate agora)
+        ->and($quiz('last_month'))->toBe(1);    // outubro (20)
+});
+
 test('dashboard destaca a maior perda entre etapas e nao passa de 100%', function () {
     $h = dashboardLogin();
     // 4 sessoes passam pela presell e clicam; 10 abrem o quiz (6 chegaram direto);
@@ -92,7 +122,7 @@ test('dashboard destaca a maior perda entre etapas e nao passa de 100%', functio
         FunnelEvent::create(['session_id' => "s$i", 'event' => 'generate_lead', 'step' => 6]);
     }
 
-    $this->withHeaders($h)->get('/admin/funil?period=30d')
+    $this->withHeaders($h)->get('/admin/funil?period=today')
         ->assertOk()
         ->assertSee('Maior perda')
         ->assertSee('chegaram direto')
