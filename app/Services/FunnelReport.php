@@ -47,7 +47,8 @@ class FunnelReport
             $rows[] = [
                 'label' => $stage['label'],
                 'count' => $count,
-                'pct_prev' => $previous === null || $previous === 0 ? null : round($count / $previous * 100, 1),
+                // acima de 100% nao faz sentido (acesso direto ao quiz sem passar pela presell): mostra "–"
+                'pct_prev' => $previous === null || $previous === 0 || $count > $previous ? null : round($count / $previous * 100, 1),
                 'pct_top' => $top === 0 ? null : round($count / $top * 100, 1),
                 'dropped' => $previous === null ? 0 : max(0, $previous - $count),
             ];

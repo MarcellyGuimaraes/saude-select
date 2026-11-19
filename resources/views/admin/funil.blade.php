@@ -59,7 +59,8 @@
 
     {{-- Funil --}}
     <div class="bg-white rounded-xl shadow p-5 mb-6">
-        <h2 class="font-bold text-gray-900 mb-4">Etapas</h2>
+        <h2 class="font-bold text-gray-900 mb-1">Etapas</h2>
+        <p class="text-xs text-gray-500 mb-4">"Abriu o quiz" inclui quem chegou direto, sem passar pela presell.</p>
         <div class="space-y-3">
             @foreach ($funnel as $row)
                 <div>
