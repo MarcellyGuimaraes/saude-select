@@ -12,12 +12,7 @@ class FunnelDashboardController extends Controller
 
     public function index(Request $request, FunnelReport $report): View
     {
-        $configured = (string) config('services.funnel.dashboard_key');
-        $given = (string) ($request->query('key') ?: $request->session()->get('funnel_key', ''));
-
-        // Sem chave configurada o dashboard fica desligado; chave errada = 404 (não revela que existe).
-        abort_unless($configured !== '' && hash_equals($configured, $given), 404);
-        $request->session()->put('funnel_key', $configured);
+        $this->authorizeAccess($request);
 
         $period = in_array($request->query('period'), ['today', '7d', '30d'], true)
             ? $request->query('period')
@@ -54,6 +49,24 @@ class FunnelDashboardController extends Controller
                 'leads' => $funnel[8]['count'],
                 'rate' => $funnel[2]['count'] > 0 ? round($funnel[8]['count'] / $funnel[2]['count'] * 100, 1) : null,
             ],
+        ]);
+    }
+
+    /**
+     * Login por autenticacao basica: o navegador abre a janela de usuario e senha.
+     * Sem credenciais corretas responde 401. Se nao houver usuario/hash configurado, fica desligado.
+     */
+    private function authorizeAccess(Request $request): void
+    {
+        $user = (string) config('services.funnel.user');
+        $hash = (string) config('services.funnel.password_hash');
+
+        $ok = $user !== '' && $hash !== ''
+            && hash_equals($user, (string) $request->getUser())
+            && password_verify((string) $request->getPassword(), $hash);
+
+        abort_unless($ok, 401, 'Acesso restrito.', [
+            'WWW-Authenticate' => 'Basic realm="BuscarPlanos Funil", charset="UTF-8"',
         ]);
     }
 }

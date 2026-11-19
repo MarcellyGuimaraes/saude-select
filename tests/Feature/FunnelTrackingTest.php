@@ -27,28 +27,43 @@ test('track rejeita evento desconhecido', function () {
     expect(FunnelEvent::count())->toBe(0);
 });
 
-test('dashboard fica desligado sem chave configurada', function () {
-    config(['services.funnel.dashboard_key' => null]);
+/** Cabecalho de autenticacao basica com a senha de teste configurada no test. */
+function dashboardLogin(string $user = 'trafego', string $senha = 'senha-de-teste'): array
+{
+    config(['services.funnel.user' => 'trafego', 'services.funnel.password_hash' => password_hash('senha-de-teste', PASSWORD_BCRYPT)]);
 
-    $this->get('/admin/funil?key=qualquer')->assertNotFound();
+    return ['Authorization' => 'Basic '.base64_encode($user.':'.$senha)];
+}
+
+test('dashboard pede login quando nao ha credenciais', function () {
+    dashboardLogin();
+
+    $this->get('/admin/funil')
+        ->assertUnauthorized()
+        ->assertHeader('WWW-Authenticate');
 });
 
-test('dashboard nega chave errada e abre com a chave certa', function () {
-    config(['services.funnel.dashboard_key' => 'segredo']);
+test('dashboard nega usuario ou senha errados e abre com o login certo', function () {
+    $this->withHeaders(dashboardLogin('trafego', 'senha-errada'))->get('/admin/funil')->assertUnauthorized();
+    $this->withHeaders(dashboardLogin('outro', 'senha-de-teste'))->get('/admin/funil')->assertUnauthorized();
+    $this->withHeaders(dashboardLogin())->get('/admin/funil')->assertOk()->assertSee('Funil por etapas');
+});
 
-    $this->get('/admin/funil?key=errada')->assertNotFound();
-    $this->get('/admin/funil?key=segredo')->assertOk()->assertSee('Funil por etapas');
+test('dashboard fica desligado se nao houver hash configurado', function () {
+    config(['services.funnel.user' => 'trafego', 'services.funnel.password_hash' => '']);
+
+    $this->withHeaders(['Authorization' => 'Basic '.base64_encode('trafego:')])->get('/admin/funil')->assertUnauthorized();
 });
 
 test('dashboard conta sessoes unicas por etapa', function () {
-    config(['services.funnel.dashboard_key' => 'segredo']);
+    $headers = dashboardLogin();
 
     foreach (['s1', 's1', 's2'] as $sid) {
         FunnelEvent::create(['session_id' => $sid, 'event' => 'quiz_start']);
     }
     FunnelEvent::create(['session_id' => 's1', 'event' => 'generate_lead']);
 
-    $this->get('/admin/funil?key=segredo&period=today')
+    $this->withHeaders($headers)->get('/admin/funil?period=today')
         ->assertOk()
         ->assertViewHas('cards', fn ($c) => $c['quiz'] === 2 && $c['leads'] === 1 && $c['rate'] === 50.0);
 });
