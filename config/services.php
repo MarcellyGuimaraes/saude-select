@@ -61,8 +61,13 @@ return [
     ],
 
     'funnel' => [
-        // Chave de acesso do dashboard /admin/funil. Sem valor, o dashboard fica desligado (404).
-        'dashboard_key' => env('FUNNEL_DASHBOARD_KEY'),
+        // Login do dashboard /admin/funil (autenticacao basica do navegador).
+        // O padrao ja funciona sem tocar no .env: so o HASH da senha fica no codigo (a senha em si nao).
+        // Para trocar a senha: gere um hash com
+        //   php -r 'echo password_hash("NOVA_SENHA", PASSWORD_BCRYPT);'
+        // e coloque em FUNNEL_DASHBOARD_PASSWORD_HASH no .env (entre aspas simplas, por causa do $).
+        'user' => env('FUNNEL_DASHBOARD_USER', 'trafego'),
+        'password_hash' => env('FUNNEL_DASHBOARD_PASSWORD_HASH', '$2y$12$VAvzrptt8agxKUcjnvQFze5iOJ9NNL9OxhsDhiw4daJ83yDfgsvAC'),
     ],
 
 ];

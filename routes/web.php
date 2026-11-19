@@ -42,6 +42,8 @@ Route::view('/termos', 'site.termos')->name('site.termos');
 Route::post('/api/track', [\App\Http\Controllers\TrackController::class , 'store'])
     ->middleware('throttle:240,1')
     ->name('api.track');
-Route::get('/admin/funil', [\App\Http\Controllers\FunnelDashboardController::class , 'index'])->name('admin.funil');
+Route::get('/admin/funil', [\App\Http\Controllers\FunnelDashboardController::class , 'index'])
+    ->middleware('throttle:30,1')
+    ->name('admin.funil');
 
 require __DIR__ . '/settings.php';
