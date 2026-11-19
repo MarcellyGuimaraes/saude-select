@@ -49,6 +49,57 @@ test('dashboard nega usuario ou senha errados e abre com o login certo', functio
     $this->withHeaders(dashboardLogin())->get('/admin/funil')->assertOk()->assertSee('Funil por etapas');
 });
 
+test('dashboard mostra so periodo, metricas e etapas', function () {
+    $this->withHeaders(dashboardLogin())->get('/admin/funil')
+        ->assertOk()
+        ->assertSee('Funil por etapas')
+        ->assertSee('Abriram o quiz')
+        ->assertSee('Passo 5: WhatsApp')
+        ->assertDontSee('Leads por estado')
+        ->assertDontSee('Erros mais frequentes')
+        ->assertDontSee('Origem e campanha')
+        ->assertDontSee('Leads por dia');
+});
+
+test('dashboard aceita periodo personalizado e ignora datas invalidas', function () {
+    FunnelEvent::create(['session_id' => 'a', 'event' => 'quiz_start', 'created_at' => '2026-11-10 15:00:00']);
+    FunnelEvent::create(['session_id' => 'b', 'event' => 'quiz_start', 'created_at' => '2026-11-12 15:00:00']);
+    $h = dashboardLogin();
+
+    // so o dia 10 (um quiz aberto)
+    $this->withHeaders($h)->get('/admin/funil?period=custom&from=2026-11-10&to=2026-11-10')
+        ->assertOk()->assertViewHas('cards', fn ($c) => $c['quiz'] === 1)->assertViewHas('period', 'custom');
+
+    // intervalo invertido ou texto qualquer: cai nos ultimos 7 dias
+    $this->withHeaders($h)->get('/admin/funil?period=custom&from=2026-11-20&to=2026-11-10')
+        ->assertOk()->assertViewHas('period', '7d');
+    $this->withHeaders($h)->get('/admin/funil?period=custom&from=abc&to=xyz')
+        ->assertOk()->assertViewHas('period', '7d');
+});
+
+test('dashboard destaca a maior perda entre etapas e nao passa de 100%', function () {
+    $h = dashboardLogin();
+    // 4 sessoes passam pela presell e clicam; 10 abrem o quiz (6 chegaram direto);
+    // 8 veem o passo 1; 2 veem o passo 2 (a maior perda: 75%) e essas 2 seguem ate virar lead.
+    foreach (range(1, 4) as $i) {
+        FunnelEvent::create(['session_id' => "p$i", 'event' => 'presell_view']);
+        FunnelEvent::create(['session_id' => "p$i", 'event' => 'presell_cta_click']);
+    }
+    foreach (range(1, 10) as $i) { FunnelEvent::create(['session_id' => "s$i", 'event' => 'quiz_start']); }
+    foreach (range(1, 8) as $i) { FunnelEvent::create(['session_id' => "s$i", 'event' => 'quiz_step_view', 'step' => 1]); }
+    foreach (range(1, 2) as $i) {
+        foreach ([2, 3, 4, 5] as $step) { FunnelEvent::create(['session_id' => "s$i", 'event' => 'quiz_step_view', 'step' => $step]); }
+        FunnelEvent::create(['session_id' => "s$i", 'event' => 'generate_lead', 'step' => 6]);
+    }
+
+    $this->withHeaders($h)->get('/admin/funil?period=30d')
+        ->assertOk()
+        ->assertSee('Maior perda')
+        ->assertSee('chegaram direto')
+        ->assertViewHas('funnel', fn ($f) => $f[2]['pct_prev'] === null && $f[2]['direct'] === 6 && $f[4]['lost_pct'] === 75.0)
+        ->assertViewHas('worst', 4);
+});
+
 test('dashboard fica desligado se nao houver hash configurado', function () {
     config(['services.funnel.user' => 'trafego', 'services.funnel.password_hash' => '']);
 
